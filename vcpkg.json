@@ -1,0 +1,8 @@
+{
+  "name": "simple-dual-sheath-vr",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "commonlibsse-ng-vr",
+    "xbyak"
+  ]
+}

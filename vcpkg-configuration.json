@@ -1,0 +1,16 @@
+{
+  "default-registry": {
+    "kind": "builtin",
+    "baseline": "eb775ea8f0d4c0d3c5d3c4b10d17837ca9f9ca57"
+  },
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://gitlab.com/colorglass/vcpkg-colorglass.git",
+      "baseline": "6309841a1ce770409708a67a9ba5c26c537d2937",
+      "packages": [
+        "commonlibsse-ng-vr"
+      ]
+    }
+  ]
+}
