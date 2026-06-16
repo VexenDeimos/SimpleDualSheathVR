@@ -17,6 +17,8 @@ add_commonlibsse_plugin(${PROJECT_NAME}
 		src/SDS/StringHolder.cpp
                 src/SDS/Config.h
 		src/SDS/Config.cpp
+		src/SDS/Util/Node.h
+		src/SDS/Util/Node.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
