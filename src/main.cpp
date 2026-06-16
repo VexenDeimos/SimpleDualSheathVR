@@ -5,6 +5,30 @@
 #include "SDS/Data.h"
 #include "SDS/StringHolder.h"
 
+void RunPlayerNodeProbe(const char* a_reason);
+
+void StartDelayedPlayerNodeProbe(const char* a_reason);
+
+void StartDelayedPlayerNodeProbe(const char* a_reason)
+{
+	std::thread([reason = std::string(a_reason)]() {
+		logger::info("Starting delayed player node probe timer: {}", reason);
+
+		std::this_thread::sleep_for(std::chrono::seconds(10));
+
+		const auto taskInterface = SKSE::GetTaskInterface();
+		if (!taskInterface) {
+			logger::warn("Delayed player node probe failed: SKSE task interface unavailable");
+			return;
+		}
+
+		taskInterface->AddTask([reason]() {
+			logger::info("Running delayed player node probe on SKSE task: {}", reason);
+			RunPlayerNodeProbe(reason.c_str());
+		});
+	}).detach();
+}
+
 namespace Plugin
 {
 	constexpr auto NAME = "SimpleDualSheathVR";
@@ -240,6 +264,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
+		RunPlayerNodeProbe("kPostLoadGame");
 		break;
 	case SKSE::MessagingInterface::kSaveGame:
 		logger::info("SKSE message: kSaveGame");
@@ -252,9 +277,11 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kNewGame:
 		logger::info("SKSE message: kNewGame");
+		RunPlayerNodeProbe("kNewGame");
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
 		logger::info("SKSE message: kDataLoaded");
+		StartDelayedPlayerNodeProbe("kDataLoaded delayed");
 		break;
 	default:
 		logger::info("SKSE message: unknown type={}", a_message->type);
@@ -276,6 +303,78 @@ void RegisterSKSEMessaging()
 	}
 
 	logger::info("SKSE messaging listener registered");
+}
+
+void ProbeNode(RE::NiNode* a_root, const char* a_rootName, const char* a_nodeName)
+{
+	if (!a_root) {
+		logger::info("Node probe [{}]: root is null, skipped {}", a_rootName, a_nodeName);
+		return;
+	}
+
+	const RE::BSFixedString nodeName(a_nodeName);
+	const auto object = a_root->GetObjectByName(nodeName);
+
+	logger::info("Node probe [{}]: {} -> {}",
+		a_rootName,
+		a_nodeName,
+		object ? "FOUND" : "missing");
+}
+
+void RunPlayerNodeProbe(const char* a_reason)
+{
+	logger::info("Beginning player node probe: {}", a_reason);
+
+	const auto player = RE::PlayerCharacter::GetSingleton();
+	if (!player) {
+		logger::warn("Player node probe failed: PlayerCharacter::GetSingleton returned null");
+		return;
+	}
+
+	logger::info("Player Is3DLoaded: {}", player->Is3DLoaded());
+
+	const auto thirdPersonObject = player->Get3D(false);
+	const auto firstPersonObject = player->Get3D(true);
+	const auto currentObject = player->GetCurrent3D();
+
+	logger::info("Player Get3D(false): {}", static_cast<const void*>(thirdPersonObject));
+	logger::info("Player Get3D(true): {}", static_cast<const void*>(firstPersonObject));
+	logger::info("Player GetCurrent3D(): {}", static_cast<const void*>(currentObject));
+
+	auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
+	auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
+	auto currentRoot = currentObject ? currentObject->AsNode() : nullptr;
+
+	logger::info("Player third-person root node: {}", static_cast<const void*>(thirdPersonRoot));
+	logger::info("Player first-person root node: {}", static_cast<const void*>(firstPersonRoot));
+	logger::info("Player current root node: {}", static_cast<const void*>(currentRoot));
+
+	constexpr const char* nodesToCheck[] = {
+		"NPC Root [Root]",
+		"WeaponSword",
+		"WeaponSwordLeft",
+		"WeaponAxe",
+		"WeaponAxeLeft",
+		"WeaponMace",
+		"WeaponMaceLeft",
+		"WeaponDagger",
+		"WeaponDaggerLeft",
+		"WeaponStaff",
+		"WeaponStaffLeft",
+		"WEAPON",
+		"SHIELD",
+		"ShieldBack"
+	};
+
+	for (const auto* nodeName : nodesToCheck) {
+		ProbeNode(thirdPersonRoot, "third-person", nodeName);
+	}
+
+	for (const auto* nodeName : nodesToCheck) {
+		ProbeNode(firstPersonRoot, "first-person", nodeName);
+	}
+
+	logger::info("Player node probe complete: {}", a_reason);
 }
 
 extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
