@@ -1,6 +1,7 @@
 #include "PCH.h"
 
 #include "SDS/Config.h"
+#include "SDS/Controller.h"
 #include "SDS/Data.h"
 #include "SDS/StringHolder.h"
 
@@ -175,6 +176,21 @@ void LoadAndLogWeaponDataTest(const SDS::Config& a_config)
 	logger::info("Weapon data sanity test complete");
 }
 
+void LoadAndLogControllerTest(const SDS::Config& a_config)
+{
+	logger::info("Beginning controller initialization sanity test");
+
+	SDS::Controller controller(a_config);
+	controller.InitializeData();
+
+	logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
+		controller.GetStringHolder() != nullptr,
+		controller.GetWeaponData() != nullptr,
+		controller.GetShieldOnBackSwitch());
+
+	logger::info("Controller initialization sanity test complete");
+}
+
 void LoadAndLogConfig()
 {
 	SDS::Config config;
@@ -203,6 +219,7 @@ void LoadAndLogConfig()
 		config.m_shieldToggleKeys.GetComboKey(),
 		config.m_shieldToggleKeys.GetKey());
 	LoadAndLogWeaponDataTest(config);
+	LoadAndLogControllerTest(config);
 }
 
 extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
