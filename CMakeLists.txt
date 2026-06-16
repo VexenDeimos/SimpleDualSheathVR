@@ -21,6 +21,8 @@ add_commonlibsse_plugin(${PROJECT_NAME}
 		src/SDS/Data.cpp
 		src/SDS/Util/Node.h
 		src/SDS/Util/Node.cpp
+		src/SDS/Controller.h
+		src/SDS/Controller.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
