@@ -1,6 +1,8 @@
 #include "PCH.h"
 
 #include "SDS/Config.h"
+#include "SDS/Data.h"
+#include "SDS/StringHolder.h"
 
 namespace Plugin
 {
@@ -114,6 +116,65 @@ void LogConfigEntry(const char* a_name, const SDS::Config::ConfigEntry& a_entry)
 		a_entry.m_sheathNode);
 }
 
+void LogWeaponDataEntry(const char* a_name, const SDS::Data::Weapon& a_weapon)
+{
+	logger::info("{} weapon data: leftNode={}, rightNode={}, firstPerson={}",
+		a_name,
+		a_weapon.GetNodeName(true).c_str(),
+		a_weapon.GetNodeName(false).c_str(),
+		a_weapon.FirstPerson());
+}
+
+void LoadAndLogWeaponDataTest(const SDS::Config& a_config)
+{
+	logger::info("Beginning weapon data sanity test");
+
+	const SDS::Data::Weapon sword(
+		SDS::StringHolder::NINODE_SWORD,
+		SDS::StringHolder::NINODE_SWORD_LEFT,
+		a_config.m_sword);
+
+	const SDS::Data::Weapon axe(
+		SDS::StringHolder::NINODE_AXE,
+		SDS::StringHolder::NINODE_AXE_LEFT,
+		a_config.m_axe);
+
+	const SDS::Data::Weapon mace(
+		SDS::StringHolder::NINODE_MACE,
+		SDS::StringHolder::NINODE_MACE_LEFT,
+		a_config.m_mace);
+
+	const SDS::Data::Weapon dagger(
+		SDS::StringHolder::NINODE_DAGGER,
+		SDS::StringHolder::NINODE_DAGGER_LEFT,
+		a_config.m_dagger);
+
+	const SDS::Data::Weapon staff(
+		SDS::StringHolder::NINODE_STAFF,
+		SDS::StringHolder::NINODE_STAFF_LEFT,
+		a_config.m_staff);
+
+	const SDS::Data::Weapon twoHandSword(
+		SDS::StringHolder::NINODE_WEAPON_BACK,
+		SDS::StringHolder::NINODE_SWORD_ON_BACK_LEFT,
+		a_config.m_2hSword);
+
+	const SDS::Data::Weapon twoHandAxe(
+		SDS::StringHolder::NINODE_WEAPON_BACK,
+		SDS::StringHolder::NINODE_AXE_ON_BACK_LEFT,
+		a_config.m_2hAxe);
+
+	LogWeaponDataEntry("Sword", sword);
+	LogWeaponDataEntry("Axe", axe);
+	LogWeaponDataEntry("Mace", mace);
+	LogWeaponDataEntry("Dagger", dagger);
+	LogWeaponDataEntry("Staff", staff);
+	LogWeaponDataEntry("2HSword", twoHandSword);
+	LogWeaponDataEntry("2HAxe", twoHandAxe);
+
+	logger::info("Weapon data sanity test complete");
+}
+
 void LoadAndLogConfig()
 {
 	SDS::Config config;
@@ -141,6 +202,7 @@ void LoadAndLogConfig()
 		config.m_shieldToggleKeys.Has(),
 		config.m_shieldToggleKeys.GetComboKey(),
 		config.m_shieldToggleKeys.GetKey());
+	LoadAndLogWeaponDataTest(config);
 }
 
 extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
