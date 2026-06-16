@@ -15,6 +15,8 @@ add_commonlibsse_plugin(${PROJECT_NAME}
 		src/SDS/Flags.h
 		src/SDS/StringHolder.h
 		src/SDS/StringHolder.cpp
+                src/SDS/Config.h
+		src/SDS/Config.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
