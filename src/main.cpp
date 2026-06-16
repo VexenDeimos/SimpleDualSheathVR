@@ -222,12 +222,69 @@ void LoadAndLogConfig()
 	LoadAndLogControllerTest(config);
 }
 
+void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
+{
+	if (!a_message) {
+		return;
+	}
+
+	switch (a_message->type) {
+	case SKSE::MessagingInterface::kPostLoad:
+		logger::info("SKSE message: kPostLoad");
+		break;
+	case SKSE::MessagingInterface::kPostPostLoad:
+		logger::info("SKSE message: kPostPostLoad");
+		break;
+	case SKSE::MessagingInterface::kPreLoadGame:
+		logger::info("SKSE message: kPreLoadGame");
+		break;
+	case SKSE::MessagingInterface::kPostLoadGame:
+		logger::info("SKSE message: kPostLoadGame");
+		break;
+	case SKSE::MessagingInterface::kSaveGame:
+		logger::info("SKSE message: kSaveGame");
+		break;
+	case SKSE::MessagingInterface::kDeleteGame:
+		logger::info("SKSE message: kDeleteGame");
+		break;
+	case SKSE::MessagingInterface::kInputLoaded:
+		logger::info("SKSE message: kInputLoaded");
+		break;
+	case SKSE::MessagingInterface::kNewGame:
+		logger::info("SKSE message: kNewGame");
+		break;
+	case SKSE::MessagingInterface::kDataLoaded:
+		logger::info("SKSE message: kDataLoaded");
+		break;
+	default:
+		logger::info("SKSE message: unknown type={}", a_message->type);
+		break;
+	}
+}
+
+void RegisterSKSEMessaging()
+{
+	const auto messaging = SKSE::GetMessagingInterface();
+	if (!messaging) {
+		logger::error("Failed to get SKSE messaging interface");
+		return;
+	}
+
+	if (!messaging->RegisterListener(OnSKSEMessage)) {
+		logger::error("Failed to register SKSE messaging listener");
+		return;
+	}
+
+	logger::info("SKSE messaging listener registered");
+}
+
 extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
 	WriteProbeLog("SKSEPlugin_Load: entered");
 
 	SKSE::Init(a_skse);
 	InitializeLog();
+	RegisterSKSEMessaging();
 
 	logger::info("{} loaded successfully", Plugin::NAME);
 
