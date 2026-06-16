@@ -12,6 +12,14 @@ add_commonlibsse_plugin(${PROJECT_NAME}
 	SOURCES
 		src/PCH.h
 		src/main.cpp
+		src/SDS/Flags.h
+		src/SDS/StringHolder.h
+		src/SDS/StringHolder.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+	PRIVATE
+		src
 )
 
 target_precompile_headers(${PROJECT_NAME}
