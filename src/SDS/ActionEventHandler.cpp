@@ -1,6 +1,7 @@
 #include "PCH.h"
 
 #include "SDS/ActionEventHandler.h"
+#include "SDS/RuntimeManager.h"
 
 namespace
 {
@@ -58,6 +59,29 @@ namespace
 			return true;
 		default:
 			return false;
+		}
+	}
+	
+	bool ShouldQueueRuntimeProcess(SKSE::ActionEvent::Type a_type)
+	{
+		switch (a_type) {
+		case SKSE::ActionEvent::Type::kEndDraw:
+		case SKSE::ActionEvent::Type::kEndSheathe:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	const char* GetRuntimeReason(SKSE::ActionEvent::Type a_type)
+	{
+		switch (a_type) {
+		case SKSE::ActionEvent::Type::kEndDraw:
+			return "ActionEvent kEndDraw";
+		case SKSE::ActionEvent::Type::kEndSheathe:
+			return "ActionEvent kEndSheathe";
+		default:
+			return "ActionEvent";
 		}
 	}
 }
@@ -123,6 +147,18 @@ namespace SDS
 			ActionTypeToString(type),
 			ActionSlotToString(slot),
 			static_cast<const void*>(a_event->sourceForm));
+
+		if (ShouldQueueRuntimeProcess(type)) {
+			const auto taskInterface = SKSE::GetTaskInterface();
+			if (!taskInterface) {
+				logger::warn("ActionEvent runtime process skipped: SKSE task interface unavailable");
+				return RE::BSEventNotifyControl::kContinue;
+			}
+
+			taskInterface->AddTask([reason = std::string(GetRuntimeReason(type))]() {
+				SDS::RuntimeManager::Run(reason.c_str());
+			});
+		}
 
 		return RE::BSEventNotifyControl::kContinue;
 	}
