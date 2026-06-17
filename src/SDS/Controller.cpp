@@ -1,6 +1,7 @@
 #include "PCH.h"
 
 #include "SDS/Controller.h"
+#include "SDS/NodeManager.h"
 
 namespace SDS
 {
@@ -99,5 +100,103 @@ namespace SDS
 		logHand(true);  // left hand
 
 		logger::info("Equipped weapon test complete");
+	}
+	
+	void Controller::LogEquippedWeaponNodePlanTest(RE::Actor* a_actor) const
+	{
+		if (!a_actor) {
+			logger::warn("Equipped weapon node plan skipped: actor is null");
+			return;
+		}
+
+		if (!m_data || !m_strings) {
+			logger::warn("Equipped weapon node plan skipped: controller data is not initialized");
+			return;
+		}
+
+		logger::info("Beginning equipped weapon node plan test");
+
+		const auto thirdPersonObject = a_actor->Get3D(false);
+		const auto firstPersonObject = a_actor->Get3D(true);
+
+		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
+		auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
+
+		logger::info("Equipped weapon node plan: thirdPersonRoot={}, firstPersonRoot={}",
+			static_cast<const void*>(thirdPersonRoot),
+			static_cast<const void*>(firstPersonRoot));
+
+		SDS::NodeManager::EnsureFallbackSDSNodes(thirdPersonRoot, "third-person node-plan");
+		SDS::NodeManager::EnsureFallbackSDSNodes(firstPersonRoot, "first-person node-plan");
+
+		const auto drawn = a_actor->IsWeaponDrawn();
+		logger::info("Equipped weapon node plan: actor drawn={}", drawn);
+
+		const auto logHandPlan = [&](bool a_leftHand) {
+			const auto handName = a_leftHand ? "left" : "right";
+			const auto form = a_actor->GetEquippedObject(a_leftHand);
+
+			if (!form) {
+				logger::info("Equipped weapon node plan [{}]: no equipped object", handName);
+				return;
+			}
+
+			const auto weapon = form->As<RE::TESObjectWEAP>();
+			if (!weapon) {
+				logger::info("Equipped weapon node plan [{}]: equipped object is not a weapon", handName);
+				return;
+			}
+
+			const auto entry = m_data->Get(a_actor, weapon, a_leftHand);
+			if (!entry) {
+				logger::info("Equipped weapon node plan [{}]: no SDS weapon data entry matched", handName);
+				return;
+			}
+
+			const auto sheathedNodeName = entry->GetNodeName(a_leftHand);
+			const auto drawnNodeName = a_leftHand ? m_strings->m_shield : m_strings->m_weapon;
+
+			const auto sourceNodeName = drawn ? sheathedNodeName : drawnNodeName;
+			const auto targetNodeName = drawn ? drawnNodeName : sheathedNodeName;
+
+			logger::info("Equipped weapon node plan [{}]: weaponType={}, sheathedNode={}, drawnNode={}",
+				handName,
+				static_cast<std::uint32_t>(weapon->GetWeaponType()),
+				sheathedNodeName.c_str(),
+				drawnNodeName.c_str());
+
+			logger::info("Equipped weapon node plan [{}]: source={}, target={}",
+				handName,
+				sourceNodeName.c_str(),
+				targetNodeName.c_str());
+
+			const auto logRootPlan = [&](RE::NiNode* a_root, const char* a_rootName) {
+				if (!a_root) {
+					logger::info("Equipped weapon node plan [{}][{}]: root is null", handName, a_rootName);
+					return;
+				}
+
+				const auto sheathedObject = SDS::NodeManager::FindObject(a_root, sheathedNodeName.c_str());
+				const auto drawnObject = SDS::NodeManager::FindObject(a_root, drawnNodeName.c_str());
+				const auto sourceObject = SDS::NodeManager::FindObject(a_root, sourceNodeName.c_str());
+				const auto targetObject = SDS::NodeManager::FindObject(a_root, targetNodeName.c_str());
+
+				logger::info("Equipped weapon node plan [{}][{}]: sheathedNode={}, drawnNode={}, source={}, target={}",
+					handName,
+					a_rootName,
+					sheathedObject ? "FOUND" : "missing",
+					drawnObject ? "FOUND" : "missing",
+					sourceObject ? "FOUND" : "missing",
+					targetObject ? "FOUND" : "missing");
+			};
+
+			logRootPlan(thirdPersonRoot, "third-person");
+			logRootPlan(firstPersonRoot, "first-person");
+		};
+
+		logHandPlan(false); // right hand
+		logHandPlan(true);  // left hand
+
+		logger::info("Equipped weapon node plan test complete");
 	}
 }

@@ -241,6 +241,7 @@ void RunEquippedWeaponRuntimeTest(const char* a_reason)
 	}
 
 	PluginState::g_controller->LogEquippedWeaponTest(player);
+	PluginState::g_controller->LogEquippedWeaponNodePlanTest(player);
 
 	logger::info("Equipped weapon runtime test complete: {}", a_reason);
 }

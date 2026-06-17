@@ -51,6 +51,8 @@ namespace SDS
 
 		void LogEquippedWeaponTest(RE::Actor* a_actor) const;
 
+		void LogEquippedWeaponNodePlanTest(RE::Actor* a_actor) const;
+
 	private:
 		const Config m_config;
 
