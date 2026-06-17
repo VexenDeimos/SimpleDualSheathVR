@@ -6,8 +6,12 @@
 #include "SDS/StringHolder.h"
 
 void RunPlayerNodeProbe(const char* a_reason);
-
 void StartDelayedPlayerNodeProbe(const char* a_reason);
+
+namespace ProbeState
+{
+	std::vector<RE::NiPointer<RE::NiNode>> g_createdNodes;
+}
 
 void StartDelayedPlayerNodeProbe(const char* a_reason)
 {
@@ -242,6 +246,7 @@ void LoadAndLogConfig()
 		config.m_shieldToggleKeys.Has(),
 		config.m_shieldToggleKeys.GetComboKey(),
 		config.m_shieldToggleKeys.GetKey());
+
 	LoadAndLogWeaponDataTest(config);
 	LoadAndLogControllerTest(config);
 }
@@ -305,6 +310,22 @@ void RegisterSKSEMessaging()
 	logger::info("SKSE messaging listener registered");
 }
 
+RE::NiAVObject* FindObject(RE::NiNode* a_root, const char* a_nodeName)
+{
+	if (!a_root) {
+		return nullptr;
+	}
+
+	const RE::BSFixedString nodeName(a_nodeName);
+	return a_root->GetObjectByName(nodeName);
+}
+
+RE::NiNode* FindNode(RE::NiNode* a_root, const char* a_nodeName)
+{
+	const auto object = FindObject(a_root, a_nodeName);
+	return object ? object->AsNode() : nullptr;
+}
+
 void ProbeNode(RE::NiNode* a_root, const char* a_rootName, const char* a_nodeName)
 {
 	if (!a_root) {
@@ -312,13 +333,70 @@ void ProbeNode(RE::NiNode* a_root, const char* a_rootName, const char* a_nodeNam
 		return;
 	}
 
-	const RE::BSFixedString nodeName(a_nodeName);
-	const auto object = a_root->GetObjectByName(nodeName);
+	const auto object = FindObject(a_root, a_nodeName);
 
 	logger::info("Node probe [{}]: {} -> {}",
 		a_rootName,
 		a_nodeName,
 		object ? "FOUND" : "missing");
+}
+
+bool EnsureChildNode(RE::NiNode* a_parent, const char* a_nodeName)
+{
+	if (!a_parent) {
+		logger::warn("EnsureChildNode failed: parent is null for {}", a_nodeName);
+		return false;
+	}
+
+	if (FindObject(a_parent, a_nodeName)) {
+		logger::info("EnsureChildNode skipped: {} already exists", a_nodeName);
+		return true;
+	}
+
+	RE::NiPointer<RE::NiNode> node(RE::NiNode::Create(0));
+	if (!node) {
+		logger::error("EnsureChildNode failed: NiNode::Create returned null for {}", a_nodeName);
+		return false;
+	}
+
+	node->name = a_nodeName;
+	a_parent->AttachChild(node.get(), true);
+
+	ProbeState::g_createdNodes.push_back(node);
+
+	logger::info("EnsureChildNode created: {}", a_nodeName);
+	return true;
+}
+
+void EnsureFallbackSDSNodes(RE::NiNode* a_root, const char* a_rootLabel)
+{
+	logger::info("Beginning fallback SDS node creation test for {}", a_rootLabel);
+
+	if (!a_root) {
+		logger::warn("Fallback SDS node creation skipped: {} root is null", a_rootLabel);
+		return;
+	}
+
+	auto attachRoot = FindNode(a_root, "NPC Root [Root]");
+	if (!attachRoot) {
+		logger::warn("Fallback SDS node creation: NPC Root [Root] missing for {}, using passed root", a_rootLabel);
+		attachRoot = a_root;
+	}
+
+	constexpr const char* nodesToCreate[] = {
+		"WeaponSwordLeft",
+		"WeaponAxeLeft",
+		"WeaponMaceLeft",
+		"WeaponDaggerLeft",
+		"WeaponStaffLeft",
+		"ShieldBack"
+	};
+
+	for (const auto* nodeName : nodesToCreate) {
+		EnsureChildNode(attachRoot, nodeName);
+	}
+
+	logger::info("Fallback SDS node creation test complete for {}", a_rootLabel);
 }
 
 void RunPlayerNodeProbe(const char* a_reason)
@@ -372,6 +450,19 @@ void RunPlayerNodeProbe(const char* a_reason)
 
 	for (const auto* nodeName : nodesToCheck) {
 		ProbeNode(firstPersonRoot, "first-person", nodeName);
+	}
+
+	EnsureFallbackSDSNodes(thirdPersonRoot, "third-person");
+	EnsureFallbackSDSNodes(firstPersonRoot, "first-person");
+
+	logger::info("Re-running player node probe after fallback node creation");
+
+	for (const auto* nodeName : nodesToCheck) {
+		ProbeNode(thirdPersonRoot, "third-person after-create", nodeName);
+	}
+
+	for (const auto* nodeName : nodesToCheck) {
+		ProbeNode(firstPersonRoot, "first-person after-create", nodeName);
 	}
 
 	logger::info("Player node probe complete: {}", a_reason);
