@@ -168,7 +168,7 @@ void StartRuntimePolling(const char* a_reason)
 	std::thread([reason = std::string(a_reason)]() {
 		logger::info("Starting SDS runtime polling: {}", reason);
 
-		for (int i = 0; i < 30; ++i) {
+		for (int i = 0; i < 120; ++i) {
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 
 			const auto taskInterface = SKSE::GetTaskInterface();
