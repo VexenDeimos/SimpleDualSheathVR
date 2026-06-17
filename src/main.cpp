@@ -3,6 +3,7 @@
 #include "SDS/Config.h"
 #include "SDS/Controller.h"
 #include "SDS/Data.h"
+#include "SDS/RuntimeManager.h"
 
 namespace Plugin
 {
@@ -13,7 +14,6 @@ namespace Plugin
 namespace PluginState
 {
 	std::unique_ptr<SDS::Controller> g_controller;
-	std::atomic<std::uint32_t> g_pollingGeneration{ 0 };
 }
 
 void WriteProbeLog(const char* a_message)
@@ -142,55 +142,12 @@ void LoadConfigAndInitializeController()
 	PluginState::g_controller = std::make_unique<SDS::Controller>(config);
 	PluginState::g_controller->InitializeData();
 
+	SDS::RuntimeManager::SetController(PluginState::g_controller.get());
+
 	logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
 		PluginState::g_controller->GetStringHolder() != nullptr,
 		PluginState::g_controller->GetWeaponData() != nullptr,
 		PluginState::g_controller->GetShieldOnBackSwitch());
-}
-
-void RunRuntimeProcess(const char*)
-{
-	if (!PluginState::g_controller) {
-		logger::warn("SDS runtime process skipped: controller is not initialized");
-		return;
-	}
-
-	const auto player = RE::PlayerCharacter::GetSingleton();
-	if (!player) {
-		logger::warn("SDS runtime process skipped: PlayerCharacter::GetSingleton returned null");
-		return;
-	}
-
-	PluginState::g_controller->ProcessEquippedLeftWeapon(player);
-}
-
-void StartRuntimePolling(const char* a_reason)
-{
-	const auto generation = ++PluginState::g_pollingGeneration;
-
-	std::thread([reason = std::string(a_reason), generation]() {
-		logger::info("Starting SDS runtime polling: {}, generation={}", reason, generation);
-
-		while (PluginState::g_pollingGeneration == generation) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-			const auto taskInterface = SKSE::GetTaskInterface();
-			if (!taskInterface) {
-				logger::warn("SDS runtime polling stopped: SKSE task interface unavailable");
-				return;
-			}
-
-			taskInterface->AddTask([reason, generation]() {
-				if (PluginState::g_pollingGeneration != generation) {
-					return;
-				}
-
-				RunRuntimeProcess(reason.c_str());
-			});
-		}
-
-		logger::info("Stopping SDS runtime polling: {}, generation={}", reason, generation);
-	}).detach();
 }
 
 void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
@@ -208,12 +165,12 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kPreLoadGame:
 		logger::info("SKSE message: kPreLoadGame");
-		++PluginState::g_pollingGeneration;
+		SDS::RuntimeManager::StopPolling();
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
-		RunRuntimeProcess("kPostLoadGame");
-		StartRuntimePolling("kPostLoadGame");
+		SDS::RuntimeManager::Run("kPostLoadGame");
+		SDS::RuntimeManager::StartPolling("kPostLoadGame");
 		break;
 	case SKSE::MessagingInterface::kSaveGame:
 		logger::info("SKSE message: kSaveGame");
@@ -226,8 +183,8 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kNewGame:
 		logger::info("SKSE message: kNewGame");
-		RunRuntimeProcess("kNewGame");
-		StartRuntimePolling("kNewGame");
+		SDS::RuntimeManager::Run("kNewGame");
+		SDS::RuntimeManager::StartPolling("kNewGame");
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
 		logger::info("SKSE message: kDataLoaded");
