@@ -48,7 +48,6 @@ namespace SDS::NodeManager
 		}
 
 		if (FindObject(a_parent, a_nodeName)) {
-			logger::info("EnsureChildNode skipped: {} already exists", a_nodeName);
 			return true;
 		}
 
@@ -69,8 +68,6 @@ namespace SDS::NodeManager
 
 	void EnsureFallbackSDSNodes(RE::NiNode* a_root, const char* a_rootLabel)
 	{
-		logger::info("Beginning fallback SDS node creation test for {}", a_rootLabel);
-
 		if (!a_root) {
 			logger::warn("Fallback SDS node creation skipped: {} root is null", a_rootLabel);
 			return;
@@ -94,8 +91,6 @@ namespace SDS::NodeManager
 		for (const auto* nodeName : nodesToCreate) {
 			EnsureChildNode(attachRoot, nodeName);
 		}
-
-		logger::info("Fallback SDS node creation test complete for {}", a_rootLabel);
 	}
 
 	void RunPlayerNodeProbe(const char* a_reason)
