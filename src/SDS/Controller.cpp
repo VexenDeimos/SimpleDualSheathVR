@@ -101,7 +101,7 @@ namespace SDS
 
 		logger::info("Equipped weapon test complete");
 	}
-	
+
 	void Controller::LogEquippedWeaponNodePlanTest(RE::Actor* a_actor) const
 	{
 		if (!a_actor) {
@@ -198,5 +198,129 @@ namespace SDS
 		logHandPlan(true);  // left hand
 
 		logger::info("Equipped weapon node plan test complete");
+	}
+
+	void Controller::MoveEquippedLeftWeaponTest(RE::Actor* a_actor) const
+	{
+		if (!a_actor) {
+			logger::warn("Move equipped left weapon test skipped: actor is null");
+			return;
+		}
+
+		if (!m_data || !m_strings) {
+			logger::warn("Move equipped left weapon test skipped: controller data is not initialized");
+			return;
+		}
+
+		logger::info("Beginning move equipped left weapon test");
+
+		constexpr bool leftHand = true;
+
+		const auto form = a_actor->GetEquippedObject(leftHand);
+		if (!form) {
+			logger::info("Move equipped left weapon test: no left-hand equipped object");
+			return;
+		}
+
+		const auto weapon = form->As<RE::TESObjectWEAP>();
+		if (!weapon) {
+			logger::info("Move equipped left weapon test: left-hand object is not a weapon");
+			return;
+		}
+
+		const auto entry = m_data->Get(a_actor, weapon, leftHand);
+		if (!entry) {
+			logger::info("Move equipped left weapon test: no SDS weapon data entry matched");
+			return;
+		}
+
+		char weaponNodeBuffer[1024]{};
+		weapon->GetNodeName(weaponNodeBuffer);
+
+		if (weaponNodeBuffer[0] == '\0') {
+			logger::warn("Move equipped left weapon test: weapon node name is empty");
+			return;
+		}
+
+		const RE::BSFixedString weaponNodeName(weaponNodeBuffer);
+
+		const auto drawn = a_actor->IsWeaponDrawn();
+
+		const auto sheathedNodeName = entry->GetNodeName(leftHand);
+		const auto drawnNodeName = m_strings->m_shield;
+
+		const auto sourceNodeName = drawn ? sheathedNodeName : drawnNodeName;
+		const auto targetNodeName = drawn ? drawnNodeName : sheathedNodeName;
+
+		logger::info("Move equipped left weapon test: weaponNode={}, drawn={}, source={}, target={}",
+			weaponNodeName.c_str(),
+			drawn,
+			sourceNodeName.c_str(),
+			targetNodeName.c_str());
+
+		const auto thirdPersonObject = a_actor->Get3D(false);
+		const auto firstPersonObject = a_actor->Get3D(true);
+
+		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
+		auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
+
+		const auto runRootMove = [&](RE::NiNode* a_root, const char* a_rootName) {
+			if (!a_root) {
+				logger::warn("Move equipped left weapon test [{}]: root is null", a_rootName);
+				return;
+			}
+
+			SDS::NodeManager::EnsureFallbackSDSNodes(a_root, a_rootName);
+
+			const auto sourceNode = SDS::NodeManager::FindNode(a_root, sourceNodeName.c_str());
+			const auto targetNode = SDS::NodeManager::FindNode(a_root, targetNodeName.c_str());
+
+			if (!sourceNode || !targetNode) {
+				logger::warn("Move equipped left weapon test [{}]: sourceNode={}, targetNode={}",
+					a_rootName,
+					sourceNode ? "FOUND" : "missing",
+					targetNode ? "FOUND" : "missing");
+				return;
+			}
+
+			const auto sourceWeaponObject = sourceNode->GetObjectByName(weaponNodeName);
+			const auto targetWeaponObject = targetNode->GetObjectByName(weaponNodeName);
+
+			logger::info("Move equipped left weapon test [{}]: sourceWeaponObject={}, targetWeaponObject={}",
+				a_rootName,
+				sourceWeaponObject ? "FOUND" : "missing",
+				targetWeaponObject ? "FOUND" : "missing");
+
+			if (sourceWeaponObject) {
+				targetNode->AttachChild(sourceWeaponObject, true);
+
+				logger::info("Move equipped left weapon test [{}]: moved {} from {} to {}",
+					a_rootName,
+					weaponNodeName.c_str(),
+					sourceNodeName.c_str(),
+					targetNodeName.c_str());
+				return;
+			}
+
+			if (targetWeaponObject) {
+				logger::info("Move equipped left weapon test [{}]: weapon already exists at target {}",
+					a_rootName,
+					targetNodeName.c_str());
+				return;
+			}
+
+			logger::info("Move equipped left weapon test [{}]: weapon object was not found under source or target",
+				a_rootName);
+		};
+
+		runRootMove(thirdPersonRoot, "third-person move-test");
+
+		if (entry->FirstPerson()) {
+			runRootMove(firstPersonRoot, "first-person move-test");
+		} else {
+			logger::info("Move equipped left weapon test: first-person skipped because SDS entry firstPerson=false");
+		}
+
+		logger::info("Move equipped left weapon test complete");
 	}
 }
