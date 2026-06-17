@@ -12,6 +12,11 @@ namespace Plugin
 	constexpr auto INI_PATH = "Data\\SKSE\\Plugins\\SimpleDualSheathVR.ini";
 }
 
+namespace PluginState
+{
+	std::unique_ptr<SDS::Controller> g_controller;
+}
+
 void WriteProbeLog(const char* a_message)
 {
 	if (auto file = std::fopen("SimpleDualSheathVR_load_probe.txt", "a")) {
@@ -181,13 +186,13 @@ void LoadAndLogControllerTest(const SDS::Config& a_config)
 {
 	logger::info("Beginning controller initialization sanity test");
 
-	SDS::Controller controller(a_config);
-	controller.InitializeData();
+	PluginState::g_controller = std::make_unique<SDS::Controller>(a_config);
+	PluginState::g_controller->InitializeData();
 
 	logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
-		controller.GetStringHolder() != nullptr,
-		controller.GetWeaponData() != nullptr,
-		controller.GetShieldOnBackSwitch());
+		PluginState::g_controller->GetStringHolder() != nullptr,
+		PluginState::g_controller->GetWeaponData() != nullptr,
+		PluginState::g_controller->GetShieldOnBackSwitch());
 
 	logger::info("Controller initialization sanity test complete");
 }
@@ -224,6 +229,22 @@ void LoadAndLogConfig()
 	LoadAndLogControllerTest(config);
 }
 
+void RunEquippedWeaponRuntimeTest(const char* a_reason)
+{
+	logger::info("Beginning equipped weapon runtime test: {}", a_reason);
+
+	const auto player = RE::PlayerCharacter::GetSingleton();
+
+	if (!PluginState::g_controller) {
+		logger::warn("Equipped weapon runtime test skipped: controller is not initialized");
+		return;
+	}
+
+	PluginState::g_controller->LogEquippedWeaponTest(player);
+
+	logger::info("Equipped weapon runtime test complete: {}", a_reason);
+}
+
 void StartDelayedPlayerNodeProbe(const char* a_reason)
 {
 	std::thread([reason = std::string(a_reason)]() {
@@ -240,6 +261,7 @@ void StartDelayedPlayerNodeProbe(const char* a_reason)
 		taskInterface->AddTask([reason]() {
 			logger::info("Running delayed player node probe on SKSE task: {}", reason);
 			SDS::NodeManager::RunPlayerNodeProbe(reason.c_str());
+			RunEquippedWeaponRuntimeTest(reason.c_str());
 		});
 	}).detach();
 }
@@ -263,6 +285,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
 		SDS::NodeManager::RunPlayerNodeProbe("kPostLoadGame");
+		RunEquippedWeaponRuntimeTest("kPostLoadGame");
 		break;
 	case SKSE::MessagingInterface::kSaveGame:
 		logger::info("SKSE message: kSaveGame");
@@ -276,6 +299,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kNewGame:
 		logger::info("SKSE message: kNewGame");
 		SDS::NodeManager::RunPlayerNodeProbe("kNewGame");
+		RunEquippedWeaponRuntimeTest("kNewGame");
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
 		logger::info("SKSE message: kDataLoaded");

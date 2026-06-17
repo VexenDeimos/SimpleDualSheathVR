@@ -49,6 +49,8 @@ namespace SDS
 
 		[[nodiscard]] static bool GetIsDrawn(RE::Actor* a_actor, DrawnState a_state);
 
+		void LogEquippedWeaponTest(RE::Actor* a_actor) const;
+
 	private:
 		const Config m_config;
 

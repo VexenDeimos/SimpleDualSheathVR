@@ -42,4 +42,62 @@ namespace SDS
 			return a_actor ? a_actor->IsWeaponDrawn() : false;
 		}
 	}
+
+	void Controller::LogEquippedWeaponTest(RE::Actor* a_actor) const
+	{
+		if (!a_actor) {
+			logger::warn("Equipped weapon test skipped: actor is null");
+			return;
+		}
+
+		if (!m_data) {
+			logger::warn("Equipped weapon test skipped: weapon data is not initialized");
+			return;
+		}
+
+		logger::info("Beginning equipped weapon test");
+		logger::info("Actor IsWeaponDrawn: {}", a_actor->IsWeaponDrawn());
+
+		const auto logHand = [&](bool a_leftHand) {
+			const auto handName = a_leftHand ? "left" : "right";
+			const auto form = a_actor->GetEquippedObject(a_leftHand);
+
+			if (!form) {
+				logger::info("Equipped weapon test [{}]: no equipped object", handName);
+				return;
+			}
+
+			const auto weapon = form->As<RE::TESObjectWEAP>();
+			if (!weapon) {
+				logger::info("Equipped weapon test [{}]: equipped object is not a weapon, formType={}",
+					handName,
+					static_cast<std::uint32_t>(form->GetFormType()));
+				return;
+			}
+
+			const auto weaponType = weapon->GetWeaponType();
+			const auto entry = m_data->Get(a_actor, weapon, a_leftHand);
+
+			logger::info("Equipped weapon test [{}]: weapon={}, type={}",
+				handName,
+				static_cast<const void*>(weapon),
+				static_cast<std::uint32_t>(weaponType));
+
+			if (!entry) {
+				logger::info("Equipped weapon test [{}]: no SDS weapon data entry matched", handName);
+				return;
+			}
+
+			logger::info("Equipped weapon test [{}]: SDS leftNode={}, rightNode={}, firstPerson={}",
+				handName,
+				entry->GetNodeName(true).c_str(),
+				entry->GetNodeName(false).c_str(),
+				entry->FirstPerson());
+		};
+
+		logHand(false); // right hand
+		logHand(true);  // left hand
+
+		logger::info("Equipped weapon test complete");
+	}
 }
