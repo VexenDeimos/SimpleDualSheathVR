@@ -324,6 +324,94 @@ namespace SDS
 		logger::info("Move equipped left weapon test complete");
 	}
 
+	void Controller::LogEquippedWeaponPlan(RE::Actor* a_actor, bool a_leftHand) const
+	{
+		if (!a_actor) {
+			logger::warn("Equipped weapon plan skipped: actor is null");
+			return;
+		}
+
+		if (!m_data || !m_strings) {
+			logger::warn("Equipped weapon plan skipped: controller data is not initialized");
+			return;
+		}
+
+		const auto handName = a_leftHand ? "left" : "right";
+
+		const auto form = a_actor->GetEquippedObject(a_leftHand);
+		if (!form) {
+			logger::info("Equipped weapon plan [{}]: no equipped object", handName);
+			return;
+		}
+
+		const auto weapon = form->As<RE::TESObjectWEAP>();
+		if (!weapon) {
+			logger::info("Equipped weapon plan [{}]: equipped object is not a weapon", handName);
+			return;
+		}
+
+		const auto entry = m_data->Get(a_actor, weapon, a_leftHand);
+		if (!entry) {
+			logger::info("Equipped weapon plan [{}]: no SDS weapon data entry matched", handName);
+			return;
+		}
+
+		char weaponNodeBuffer[1024]{};
+		weapon->GetNodeName(weaponNodeBuffer);
+
+		if (weaponNodeBuffer[0] == '\0') {
+			logger::warn("Equipped weapon plan [{}]: weapon node name is empty", handName);
+			return;
+		}
+
+		const RE::BSFixedString weaponNodeName(weaponNodeBuffer);
+
+		const auto drawn = a_actor->IsWeaponDrawn();
+
+		const auto sheathedNodeName = entry->GetNodeName(a_leftHand);
+		const auto drawnNodeName = a_leftHand ? m_strings->m_shield : m_strings->m_weapon;
+
+		const auto sourceNodeName = drawn ? sheathedNodeName : drawnNodeName;
+		const auto targetNodeName = drawn ? drawnNodeName : sheathedNodeName;
+
+		logger::info("Equipped weapon plan [{}]: weaponNode={}, weaponType={}, drawn={}, source={}, target={}",
+			handName,
+			weaponNodeName.c_str(),
+			static_cast<std::uint32_t>(weapon->GetWeaponType()),
+			drawn,
+			sourceNodeName.c_str(),
+			targetNodeName.c_str());
+
+		const auto thirdPersonObject = a_actor->Get3D(false);
+		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
+
+		if (!thirdPersonRoot) {
+			logger::warn("Equipped weapon plan [{}]: third-person root is null", handName);
+			return;
+		}
+
+		SDS::NodeManager::EnsureFallbackSDSNodes(thirdPersonRoot, "third-person plan");
+
+		const auto sourceNode = SDS::NodeManager::FindNode(thirdPersonRoot, sourceNodeName.c_str());
+		const auto targetNode = SDS::NodeManager::FindNode(thirdPersonRoot, targetNodeName.c_str());
+
+		if (!sourceNode || !targetNode) {
+			logger::warn("Equipped weapon plan [{}]: sourceNode={}, targetNode={}",
+				handName,
+				sourceNode ? "FOUND" : "missing",
+				targetNode ? "FOUND" : "missing");
+			return;
+		}
+
+		const auto sourceWeaponObject = sourceNode->GetObjectByName(weaponNodeName);
+		const auto targetWeaponObject = targetNode->GetObjectByName(weaponNodeName);
+
+		logger::info("Equipped weapon plan [{}]: sourceWeaponObject={}, targetWeaponObject={}",
+			handName,
+			sourceWeaponObject ? "FOUND" : "missing",
+			targetWeaponObject ? "FOUND" : "missing");
+	}
+
 	void Controller::ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand) const
 	{
 		if (!a_actor) {
