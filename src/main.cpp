@@ -1,19 +1,12 @@
 #include "PCH.h"
 
-#include "SDS/Config.h"
-#include "SDS/Controller.h"
-#include "SDS/Data.h"
+#include "SDS/PluginState.h"
 #include "SDS/RuntimeManager.h"
 
 namespace Plugin
 {
 	constexpr auto NAME = "SimpleDualSheathVR";
 	constexpr auto INI_PATH = "Data\\SKSE\\Plugins\\SimpleDualSheathVR.ini";
-}
-
-namespace PluginState
-{
-	std::unique_ptr<SDS::Controller> g_controller;
 }
 
 void WriteProbeLog(const char* a_message)
@@ -67,87 +60,6 @@ void InitializeLog()
 	spdlog::set_pattern("[%Y-%m-%d %T.%e] [%l] %v"s);
 
 	WriteProbeLog(("InitializeLog: writing to "s + path.string()).c_str());
-}
-
-std::string FlagsToString(SDS::Data::Flags a_flags)
-{
-	std::vector<std::string> parts;
-
-	if (SDS::Data::HasFlag(a_flags, SDS::Data::Flags::kPlayer)) {
-		parts.emplace_back("Player");
-	}
-
-	if (SDS::Data::HasFlag(a_flags, SDS::Data::Flags::kNPC)) {
-		parts.emplace_back("NPC");
-	}
-
-	if (SDS::Data::HasFlag(a_flags, SDS::Data::Flags::kRight)) {
-		parts.emplace_back("Right");
-	}
-
-	if (SDS::Data::HasFlag(a_flags, SDS::Data::Flags::kSwap)) {
-		parts.emplace_back("Swap");
-	}
-
-	if (SDS::Data::HasFlag(a_flags, SDS::Data::Flags::kFirstPerson)) {
-		parts.emplace_back("FirstPerson");
-	}
-
-	if (SDS::Data::HasFlag(a_flags, SDS::Data::Flags::kMountOnly)) {
-		parts.emplace_back("MountOnly");
-	}
-
-	if (parts.empty()) {
-		return "None";
-	}
-
-	std::string output;
-	for (std::size_t i = 0; i < parts.size(); ++i) {
-		if (i > 0) {
-			output += "|";
-		}
-
-		output += parts[i];
-	}
-
-	return output;
-}
-
-void LogConfigEntry(const char* a_name, const SDS::Config::ConfigEntry& a_entry)
-{
-	logger::info("{}: enabled={}, flags={}, sheathNode={}",
-		a_name,
-		a_entry.IsEnabled(),
-		FlagsToString(a_entry.m_flags),
-		a_entry.m_sheathNode);
-}
-
-void LoadConfigAndInitializeController()
-{
-	SDS::Config config;
-	const auto loaded = config.Load(Plugin::INI_PATH);
-
-	logger::info("Config path: {}", Plugin::INI_PATH);
-	logger::info("Config loaded: {}", loaded);
-
-	LogConfigEntry("Sword", config.m_sword);
-	LogConfigEntry("Axe", config.m_axe);
-	LogConfigEntry("Mace", config.m_mace);
-	LogConfigEntry("Dagger", config.m_dagger);
-	LogConfigEntry("Staff", config.m_staff);
-	LogConfigEntry("2HSword", config.m_2hSword);
-	LogConfigEntry("2HAxe", config.m_2hAxe);
-	LogConfigEntry("ShieldOnBack", config.m_shield);
-
-	PluginState::g_controller = std::make_unique<SDS::Controller>(config);
-	PluginState::g_controller->InitializeData();
-
-	SDS::RuntimeManager::SetController(PluginState::g_controller.get());
-
-	logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
-		PluginState::g_controller->GetStringHolder() != nullptr,
-		PluginState::g_controller->GetWeaponData() != nullptr,
-		PluginState::g_controller->GetShieldOnBackSwitch());
 }
 
 void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
@@ -221,7 +133,7 @@ extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface*
 
 	logger::info("{} loaded successfully", Plugin::NAME);
 
-	LoadConfigAndInitializeController();
+	SDS::PluginState::LoadConfigAndInitializeController(Plugin::INI_PATH);
 
 	WriteProbeLog("SKSEPlugin_Load: complete");
 
