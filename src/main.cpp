@@ -167,6 +167,29 @@ void RunRuntimeProcess(const char* a_reason)
 	logger::info("SDS runtime process complete: {}", a_reason);
 }
 
+void StartRuntimePolling(const char* a_reason)
+{
+	std::thread([reason = std::string(a_reason)]() {
+		logger::info("Starting SDS runtime polling: {}", reason);
+
+		for (int i = 0; i < 30; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+
+			const auto taskInterface = SKSE::GetTaskInterface();
+			if (!taskInterface) {
+				logger::warn("SDS runtime polling stopped: SKSE task interface unavailable");
+				return;
+			}
+
+			taskInterface->AddTask([reason, i]() {
+				RunRuntimeProcess(fmt::format("{} poll {}", reason, i + 1).c_str());
+			});
+		}
+
+		logger::info("SDS runtime polling queued all ticks: {}", reason);
+	}).detach();
+}
+
 void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 {
 	if (!a_message) {
@@ -186,6 +209,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
 		RunRuntimeProcess("kPostLoadGame");
+		StartRuntimePolling("kPostLoadGame");
 		break;
 	case SKSE::MessagingInterface::kSaveGame:
 		logger::info("SKSE message: kSaveGame");
@@ -199,6 +223,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kNewGame:
 		logger::info("SKSE message: kNewGame");
 		RunRuntimeProcess("kNewGame");
+		StartRuntimePolling("kNewGame");
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
 		logger::info("SKSE message: kDataLoaded");
