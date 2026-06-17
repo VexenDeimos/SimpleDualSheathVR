@@ -9,19 +9,10 @@ namespace Plugin
 	constexpr auto INI_PATH = "Data\\SKSE\\Plugins\\SimpleDualSheathVR.ini";
 }
 
-void WriteProbeLog(const char* a_message)
-{
-	if (auto file = std::fopen("SimpleDualSheathVR_load_probe.txt", "a")) {
-		std::fprintf(file, "%s\n", a_message);
-		std::fclose(file);
-	}
-}
-
 std::filesystem::path GetExplicitVRLogPath()
 {
 	const auto* userProfile = std::getenv("USERPROFILE");
 	if (!userProfile) {
-		WriteProbeLog("GetExplicitVRLogPath: USERPROFILE missing");
 		return "SimpleDualSheathVR.log";
 	}
 
@@ -37,15 +28,6 @@ std::filesystem::path GetExplicitVRLogPath()
 	return path;
 }
 
-extern "C" int __stdcall DllMain(void*, unsigned long a_reason, void*)
-{
-	if (a_reason == 1) {
-		WriteProbeLog("DllMain: DLL_PROCESS_ATTACH");
-	}
-
-	return 1;
-}
-
 void InitializeLog()
 {
 	const auto path = GetExplicitVRLogPath();
@@ -58,8 +40,6 @@ void InitializeLog()
 
 	spdlog::set_default_logger(std::move(log));
 	spdlog::set_pattern("[%Y-%m-%d %T.%e] [%l] %v"s);
-
-	WriteProbeLog(("InitializeLog: writing to "s + path.string()).c_str());
 }
 
 void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
@@ -125,8 +105,6 @@ void RegisterSKSEMessaging()
 
 extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
-	WriteProbeLog("SKSEPlugin_Load: entered");
-
 	SKSE::Init(a_skse);
 	InitializeLog();
 	RegisterSKSEMessaging();
@@ -134,8 +112,6 @@ extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface*
 	logger::info("{} loaded successfully", Plugin::NAME);
 
 	SDS::PluginState::LoadConfigAndInitializeController(Plugin::INI_PATH);
-
-	WriteProbeLog("SKSEPlugin_Load: complete");
 
 	return true;
 }
