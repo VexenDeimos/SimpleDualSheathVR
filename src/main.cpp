@@ -13,6 +13,7 @@ namespace Plugin
 namespace PluginState
 {
 	std::unique_ptr<SDS::Controller> g_controller;
+	std::atomic<std::uint32_t> g_pollingGeneration{ 0 };
 }
 
 void WriteProbeLog(const char* a_message)
@@ -165,11 +166,13 @@ void RunRuntimeProcess(const char*)
 
 void StartRuntimePolling(const char* a_reason)
 {
-	std::thread([reason = std::string(a_reason)]() {
-		logger::info("Starting SDS runtime polling: {}", reason);
+	const auto generation = ++PluginState::g_pollingGeneration;
 
-		for (int i = 0; i < 120; ++i) {
-			std::this_thread::sleep_for(std::chrono::seconds(1));
+	std::thread([reason = std::string(a_reason), generation]() {
+		logger::info("Starting SDS runtime polling: {}, generation={}", reason, generation);
+
+		while (PluginState::g_pollingGeneration == generation) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 			const auto taskInterface = SKSE::GetTaskInterface();
 			if (!taskInterface) {
@@ -177,12 +180,16 @@ void StartRuntimePolling(const char* a_reason)
 				return;
 			}
 
-			taskInterface->AddTask([reason, i]() {
-				RunRuntimeProcess(fmt::format("{} poll {}", reason, i + 1).c_str());
+			taskInterface->AddTask([reason, generation]() {
+				if (PluginState::g_pollingGeneration != generation) {
+					return;
+				}
+
+				RunRuntimeProcess(reason.c_str());
 			});
 		}
 
-		logger::info("SDS runtime polling queued all ticks: {}", reason);
+		logger::info("Stopping SDS runtime polling: {}, generation={}", reason, generation);
 	}).detach();
 }
 
@@ -201,6 +208,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kPreLoadGame:
 		logger::info("SKSE message: kPreLoadGame");
+		++PluginState::g_pollingGeneration;
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
