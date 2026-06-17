@@ -5,6 +5,7 @@
 #include "SDS/Data.h"
 #include "SDS/PluginState.h"
 #include "SDS/RuntimeManager.h"
+#include "SDS/ActionEventHandler.h"
 
 namespace
 {
@@ -90,6 +91,7 @@ namespace SDS::PluginState
 		SDS::RuntimeManager::Configure(
 			config.m_runtimePollingEnabled,
 			config.m_runtimePollingIntervalMS);
+		SDS::ActionEventHandler::Configure(config.m_runtimeLogActionEvents);
 
 		logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
 			g_controller->GetStringHolder() != nullptr,

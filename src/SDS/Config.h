@@ -104,7 +104,8 @@ namespace SDS
 		bool m_disableScabbards{ false };
 		bool m_npcEquipLeft{ false };
 		bool m_runtimePollingEnabled{ true };
-		std::uint32_t m_runtimePollingIntervalMS{ 500 };
+		std::uint32_t m_runtimePollingIntervalMS{ 3000 };
+		bool m_runtimeLogActionEvents{ false };
 		bool m_shieldHandWorkaround{ false };
 		bool m_shwForceIfDrawn{ false };
 		bool m_disableWeapNodeSharing{ false };

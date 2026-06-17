@@ -10,6 +10,7 @@ namespace SDS
 	public:
 		static ActionEventHandler* GetSingleton();
 
+		static void Configure(bool a_logEvents);
 		static void Register();
 
 		RE::BSEventNotifyControl ProcessEvent(
@@ -20,5 +21,6 @@ namespace SDS
 		ActionEventHandler() = default;
 
 		static std::atomic_bool s_registered;
+		static std::atomic_bool s_logEvents;
 	};
 }

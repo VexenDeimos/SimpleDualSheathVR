@@ -89,11 +89,19 @@ namespace
 namespace SDS
 {
 	std::atomic_bool ActionEventHandler::s_registered{ false };
+	std::atomic_bool ActionEventHandler::s_logEvents{ false };
 
 	ActionEventHandler* ActionEventHandler::GetSingleton()
 	{
 		static ActionEventHandler singleton;
 		return std::addressof(singleton);
+	}
+
+	void ActionEventHandler::Configure(bool a_logEvents)
+	{
+		s_logEvents = a_logEvents;
+
+		logger::info("ActionEvent logging configured: enabled={}", s_logEvents.load());
 	}
 
 	void ActionEventHandler::Register()
@@ -132,7 +140,11 @@ namespace SDS
 		}
 
 		const auto type = a_event->type.get();
-		if (!ShouldLogActionEvent(type)) {
+
+		const auto shouldQueueRuntimeProcess = ShouldQueueRuntimeProcess(type);
+		const auto shouldLogEvent = s_logEvents.load() && ShouldLogActionEvent(type);
+
+		if (!shouldQueueRuntimeProcess && !shouldLogEvent) {
 			return RE::BSEventNotifyControl::kContinue;
 		}
 
@@ -143,12 +155,14 @@ namespace SDS
 
 		const auto slot = a_event->slot.get();
 
-		logger::info("ActionEvent: type={}, slot={}, sourceForm={}",
-			ActionTypeToString(type),
-			ActionSlotToString(slot),
-			static_cast<const void*>(a_event->sourceForm));
+		if (shouldLogEvent) {
+			logger::info("ActionEvent: type={}, slot={}, sourceForm={}",
+				ActionTypeToString(type),
+				ActionSlotToString(slot),
+				static_cast<const void*>(a_event->sourceForm));
+		}
 
-		if (ShouldQueueRuntimeProcess(type)) {
+		if (shouldQueueRuntimeProcess) {
 			const auto taskInterface = SKSE::GetTaskInterface();
 			if (!taskInterface) {
 				logger::warn("ActionEvent runtime process skipped: SKSE task interface unavailable");

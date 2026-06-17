@@ -229,7 +229,8 @@ namespace SDS
 		m_disableScabbards = reader.GetBoolValue(SECT_GENERAL, "DisableAllScabbards", false);
 		m_disableWeapNodeSharing = reader.GetBoolValue(SECT_GENERAL, "DisableWeaponNodeSharing", false);
 		m_runtimePollingEnabled = reader.GetBoolValue(SECT_RUNTIME, "EnableRuntimePolling", true);
-		m_runtimePollingIntervalMS = reader.GetUInt32Value(SECT_RUNTIME, "PollingIntervalMS", 500);
+		m_runtimePollingIntervalMS = reader.GetUInt32Value(SECT_RUNTIME, "PollingIntervalMS", 3000);
+		m_runtimeLogActionEvents = reader.GetBoolValue(SECT_RUNTIME, "LogActionEvents", false);
 
 		if (m_runtimePollingIntervalMS < 100) {
 			m_runtimePollingIntervalMS = 100;
