@@ -105,6 +105,20 @@ namespace
 
 			return a_default;
 		}
+		
+		[[nodiscard]] std::uint32_t GetUInt32Value(
+			const std::string& a_section,
+			const std::string& a_key,
+			std::uint32_t a_default) const
+		{
+			std::uint32_t out = a_default;
+
+			if (!ParseUInt32(GetValue(a_section, a_key, std::to_string(a_default)), out)) {
+				return a_default;
+			}
+
+			return out;
+		}
 
 	private:
 		bool Load(const std::string& a_path)
@@ -214,6 +228,16 @@ namespace SDS
 
 		m_disableScabbards = reader.GetBoolValue(SECT_GENERAL, "DisableAllScabbards", false);
 		m_disableWeapNodeSharing = reader.GetBoolValue(SECT_GENERAL, "DisableWeaponNodeSharing", false);
+		m_runtimePollingEnabled = reader.GetBoolValue(SECT_RUNTIME, "EnableRuntimePolling", true);
+		m_runtimePollingIntervalMS = reader.GetUInt32Value(SECT_RUNTIME, "PollingIntervalMS", 500);
+
+		if (m_runtimePollingIntervalMS < 100) {
+			m_runtimePollingIntervalMS = 100;
+		}
+
+		if (m_runtimePollingIntervalMS > 5000) {
+			m_runtimePollingIntervalMS = 5000;
+		}
 
 		m_sword = {
 			FlagParser::Parse(reader.GetValue(SECT_SWORD, KW_FLAGS, "Player|NPC")),

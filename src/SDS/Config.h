@@ -43,6 +43,7 @@ namespace SDS
 	{
 		inline static constexpr auto SECT_GENERAL = "General";
 		inline static constexpr auto SECT_NPC     = "NPC";
+		inline static constexpr auto SECT_RUNTIME = "Runtime";
 		inline static constexpr auto SECT_SWORD   = "Sword";
 		inline static constexpr auto SECT_AXE     = "Axe";
 		inline static constexpr auto SECT_MACE    = "Mace";
@@ -102,6 +103,8 @@ namespace SDS
 
 		bool m_disableScabbards{ false };
 		bool m_npcEquipLeft{ false };
+		bool m_runtimePollingEnabled{ true };
+		std::uint32_t m_runtimePollingIntervalMS{ 500 };
 		bool m_shieldHandWorkaround{ false };
 		bool m_shwForceIfDrawn{ false };
 		bool m_disableWeapNodeSharing{ false };

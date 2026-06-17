@@ -87,6 +87,9 @@ namespace SDS::PluginState
 		g_controller->InitializeData();
 
 		SDS::RuntimeManager::SetController(g_controller.get());
+		SDS::RuntimeManager::Configure(
+			config.m_runtimePollingEnabled,
+			config.m_runtimePollingIntervalMS);
 
 		logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
 			g_controller->GetStringHolder() != nullptr,
