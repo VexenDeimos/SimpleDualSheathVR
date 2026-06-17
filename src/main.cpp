@@ -3,8 +3,6 @@
 #include "SDS/Config.h"
 #include "SDS/Controller.h"
 #include "SDS/Data.h"
-#include "SDS/NodeManager.h"
-#include "SDS/StringHolder.h"
 
 namespace Plugin
 {
@@ -123,81 +121,7 @@ void LogConfigEntry(const char* a_name, const SDS::Config::ConfigEntry& a_entry)
 		a_entry.m_sheathNode);
 }
 
-void LogWeaponDataEntry(const char* a_name, const SDS::Data::Weapon& a_weapon)
-{
-	logger::info("{} weapon data: leftNode={}, rightNode={}, firstPerson={}",
-		a_name,
-		a_weapon.GetNodeName(true).c_str(),
-		a_weapon.GetNodeName(false).c_str(),
-		a_weapon.FirstPerson());
-}
-
-void LoadAndLogWeaponDataTest(const SDS::Config& a_config)
-{
-	logger::info("Beginning weapon data sanity test");
-
-	const SDS::Data::Weapon sword(
-		SDS::StringHolder::NINODE_SWORD,
-		SDS::StringHolder::NINODE_SWORD_LEFT,
-		a_config.m_sword);
-
-	const SDS::Data::Weapon axe(
-		SDS::StringHolder::NINODE_AXE,
-		SDS::StringHolder::NINODE_AXE_LEFT,
-		a_config.m_axe);
-
-	const SDS::Data::Weapon mace(
-		SDS::StringHolder::NINODE_MACE,
-		SDS::StringHolder::NINODE_MACE_LEFT,
-		a_config.m_mace);
-
-	const SDS::Data::Weapon dagger(
-		SDS::StringHolder::NINODE_DAGGER,
-		SDS::StringHolder::NINODE_DAGGER_LEFT,
-		a_config.m_dagger);
-
-	const SDS::Data::Weapon staff(
-		SDS::StringHolder::NINODE_STAFF,
-		SDS::StringHolder::NINODE_STAFF_LEFT,
-		a_config.m_staff);
-
-	const SDS::Data::Weapon twoHandSword(
-		SDS::StringHolder::NINODE_WEAPON_BACK,
-		SDS::StringHolder::NINODE_SWORD_ON_BACK_LEFT,
-		a_config.m_2hSword);
-
-	const SDS::Data::Weapon twoHandAxe(
-		SDS::StringHolder::NINODE_WEAPON_BACK,
-		SDS::StringHolder::NINODE_AXE_ON_BACK_LEFT,
-		a_config.m_2hAxe);
-
-	LogWeaponDataEntry("Sword", sword);
-	LogWeaponDataEntry("Axe", axe);
-	LogWeaponDataEntry("Mace", mace);
-	LogWeaponDataEntry("Dagger", dagger);
-	LogWeaponDataEntry("Staff", staff);
-	LogWeaponDataEntry("2HSword", twoHandSword);
-	LogWeaponDataEntry("2HAxe", twoHandAxe);
-
-	logger::info("Weapon data sanity test complete");
-}
-
-void LoadAndLogControllerTest(const SDS::Config& a_config)
-{
-	logger::info("Beginning controller initialization sanity test");
-
-	PluginState::g_controller = std::make_unique<SDS::Controller>(a_config);
-	PluginState::g_controller->InitializeData();
-
-	logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
-		PluginState::g_controller->GetStringHolder() != nullptr,
-		PluginState::g_controller->GetWeaponData() != nullptr,
-		PluginState::g_controller->GetShieldOnBackSwitch());
-
-	logger::info("Controller initialization sanity test complete");
-}
-
-void LoadAndLogConfig()
+void LoadConfigAndInitializeController()
 {
 	SDS::Config config;
 	const auto loaded = config.Load(Plugin::INI_PATH);
@@ -214,58 +138,33 @@ void LoadAndLogConfig()
 	LogConfigEntry("2HAxe", config.m_2hAxe);
 	LogConfigEntry("ShieldOnBack", config.m_shield);
 
-	logger::info("DisableAllScabbards: {}", config.m_disableScabbards);
-	logger::info("DisableWeaponNodeSharing: {}", config.m_disableWeapNodeSharing);
-	logger::info("NPC EquipLeft: {}", config.m_npcEquipLeft);
-	logger::info("Shield ClenchedHandWorkaround: {}", config.m_shieldHandWorkaround);
-	logger::info("Shield ClenchedHandWorkaroundForceIfDrawn: {}", config.m_shwForceIfDrawn);
-	logger::info("Shield DisableHideOnSit flags: {}", FlagsToString(config.m_shieldHideFlags));
-	logger::info("Shield ToggleKeys has={}, comboKey={}, key={}",
-		config.m_shieldToggleKeys.Has(),
-		config.m_shieldToggleKeys.GetComboKey(),
-		config.m_shieldToggleKeys.GetKey());
+	PluginState::g_controller = std::make_unique<SDS::Controller>(config);
+	PluginState::g_controller->InitializeData();
 
-	LoadAndLogWeaponDataTest(config);
-	LoadAndLogControllerTest(config);
+	logger::info("Controller initialized: strings={}, weaponData={}, shieldSwitch={}",
+		PluginState::g_controller->GetStringHolder() != nullptr,
+		PluginState::g_controller->GetWeaponData() != nullptr,
+		PluginState::g_controller->GetShieldOnBackSwitch());
 }
 
-void RunEquippedWeaponRuntimeTest(const char* a_reason)
+void RunRuntimeProcess(const char* a_reason)
 {
-	logger::info("Beginning equipped weapon runtime test: {}", a_reason);
-
-	const auto player = RE::PlayerCharacter::GetSingleton();
+	logger::info("Beginning SDS runtime process: {}", a_reason);
 
 	if (!PluginState::g_controller) {
-		logger::warn("Equipped weapon runtime test skipped: controller is not initialized");
+		logger::warn("SDS runtime process skipped: controller is not initialized");
 		return;
 	}
 
-	PluginState::g_controller->LogEquippedWeaponTest(player);
-	PluginState::g_controller->LogEquippedWeaponNodePlanTest(player);
-	PluginState::g_controller->MoveEquippedLeftWeaponTest(player);
+	const auto player = RE::PlayerCharacter::GetSingleton();
+	if (!player) {
+		logger::warn("SDS runtime process skipped: PlayerCharacter::GetSingleton returned null");
+		return;
+	}
 
-	logger::info("Equipped weapon runtime test complete: {}", a_reason);
-}
+	PluginState::g_controller->ProcessEquippedLeftWeapon(player);
 
-void StartDelayedPlayerNodeProbe(const char* a_reason)
-{
-	std::thread([reason = std::string(a_reason)]() {
-		logger::info("Starting delayed player node probe timer: {}", reason);
-
-		std::this_thread::sleep_for(std::chrono::seconds(10));
-
-		const auto taskInterface = SKSE::GetTaskInterface();
-		if (!taskInterface) {
-			logger::warn("Delayed player node probe failed: SKSE task interface unavailable");
-			return;
-		}
-
-		taskInterface->AddTask([reason]() {
-			logger::info("Running delayed player node probe on SKSE task: {}", reason);
-			SDS::NodeManager::RunPlayerNodeProbe(reason.c_str());
-			RunEquippedWeaponRuntimeTest(reason.c_str());
-		});
-	}).detach();
+	logger::info("SDS runtime process complete: {}", a_reason);
 }
 
 void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
@@ -286,8 +185,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
-		SDS::NodeManager::RunPlayerNodeProbe("kPostLoadGame");
-		RunEquippedWeaponRuntimeTest("kPostLoadGame");
+		RunRuntimeProcess("kPostLoadGame");
 		break;
 	case SKSE::MessagingInterface::kSaveGame:
 		logger::info("SKSE message: kSaveGame");
@@ -300,12 +198,10 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kNewGame:
 		logger::info("SKSE message: kNewGame");
-		SDS::NodeManager::RunPlayerNodeProbe("kNewGame");
-		RunEquippedWeaponRuntimeTest("kNewGame");
+		RunRuntimeProcess("kNewGame");
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
 		logger::info("SKSE message: kDataLoaded");
-		StartDelayedPlayerNodeProbe("kDataLoaded delayed");
 		break;
 	default:
 		logger::info("SKSE message: unknown type={}", a_message->type);
@@ -339,7 +235,7 @@ extern "C" __declspec(dllexport) bool SKSEPlugin_Load(const SKSE::LoadInterface*
 
 	logger::info("{} loaded successfully", Plugin::NAME);
 
-	LoadAndLogConfig();
+	LoadConfigAndInitializeController();
 
 	WriteProbeLog("SKSEPlugin_Load: complete");
 
