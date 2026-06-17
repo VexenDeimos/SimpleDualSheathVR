@@ -62,7 +62,7 @@ namespace SDS::NodeManager
 
 		g_createdNodes.push_back(node);
 
-		logger::info("EnsureChildNode created: {}", a_nodeName);
+		logger::debug("EnsureChildNode created: {}", a_nodeName);
 		return true;
 	}
 
