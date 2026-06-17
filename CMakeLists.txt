@@ -29,6 +29,8 @@ add_commonlibsse_plugin(${PROJECT_NAME}
 		src/SDS/RuntimeManager.cpp
 		src/SDS/PluginState.h
 		src/SDS/PluginState.cpp
+		src/SDS/ActionEventHandler.h
+		src/SDS/ActionEventHandler.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

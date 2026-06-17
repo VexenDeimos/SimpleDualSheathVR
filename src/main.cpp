@@ -1,5 +1,6 @@
 #include "PCH.h"
 
+#include "SDS/ActionEventHandler.h"
 #include "SDS/PluginState.h"
 #include "SDS/RuntimeManager.h"
 
@@ -80,6 +81,7 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kDataLoaded:
 		logger::info("SKSE message: kDataLoaded");
+		SDS::ActionEventHandler::Register();
 		break;
 	default:
 		logger::info("SKSE message: unknown type={}", a_message->type);
