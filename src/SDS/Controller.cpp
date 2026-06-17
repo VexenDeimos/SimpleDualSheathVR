@@ -324,21 +324,19 @@ namespace SDS
 		logger::info("Move equipped left weapon test complete");
 	}
 
-	void Controller::ProcessEquippedLeftWeapon(RE::Actor* a_actor) const
+	void Controller::ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand) const
 	{
 		if (!a_actor) {
-			logger::warn("Process equipped left weapon skipped: actor is null");
+			logger::warn("Process equipped weapon skipped: actor is null");
 			return;
 		}
 
 		if (!m_data || !m_strings) {
-			logger::warn("Process equipped left weapon skipped: controller data is not initialized");
+			logger::warn("Process equipped weapon skipped: controller data is not initialized");
 			return;
 		}
 
-		constexpr bool leftHand = true;
-
-		const auto form = a_actor->GetEquippedObject(leftHand);
+		const auto form = a_actor->GetEquippedObject(a_leftHand);
 		if (!form) {
 			return;
 		}
@@ -348,7 +346,7 @@ namespace SDS
 			return;
 		}
 
-		const auto entry = m_data->Get(a_actor, weapon, leftHand);
+		const auto entry = m_data->Get(a_actor, weapon, a_leftHand);
 		if (!entry) {
 			return;
 		}
@@ -357,7 +355,7 @@ namespace SDS
 		weapon->GetNodeName(weaponNodeBuffer);
 
 		if (weaponNodeBuffer[0] == '\0') {
-			logger::warn("Process equipped left weapon: weapon node name is empty");
+			logger::warn("Process equipped weapon: weapon node name is empty");
 			return;
 		}
 
@@ -365,8 +363,8 @@ namespace SDS
 
 		const auto drawn = a_actor->IsWeaponDrawn();
 
-		const auto sheathedNodeName = entry->GetNodeName(leftHand);
-		const auto drawnNodeName = m_strings->m_shield;
+		const auto sheathedNodeName = entry->GetNodeName(a_leftHand);
+		const auto drawnNodeName = a_leftHand ? m_strings->m_shield : m_strings->m_weapon;
 
 		const auto sourceNodeName = drawn ? sheathedNodeName : drawnNodeName;
 		const auto targetNodeName = drawn ? drawnNodeName : sheathedNodeName;
@@ -376,7 +374,7 @@ namespace SDS
 
 		const auto processRoot = [&](RE::NiNode* a_root, const char* a_rootName) {
 			if (!a_root) {
-				logger::warn("Process equipped left weapon [{}]: root is null", a_rootName);
+				logger::warn("Process equipped weapon [{}]: root is null", a_rootName);
 				return;
 			}
 
@@ -386,7 +384,7 @@ namespace SDS
 			const auto targetNode = SDS::NodeManager::FindNode(a_root, targetNodeName.c_str());
 
 			if (!sourceNode || !targetNode) {
-				logger::warn("Process equipped left weapon [{}]: sourceNode={}, targetNode={}",
+				logger::warn("Process equipped weapon [{}]: sourceNode={}, targetNode={}",
 					a_rootName,
 					sourceNode ? "FOUND" : "missing",
 					targetNode ? "FOUND" : "missing");
@@ -399,8 +397,9 @@ namespace SDS
 			if (sourceWeaponObject) {
 				targetNode->AttachChild(sourceWeaponObject, true);
 
-				logger::info("Process equipped left weapon [{}]: moved {} from {} to {}",
+				logger::info("Process equipped weapon [{}][{}]: moved {} from {} to {}",
 					a_rootName,
+					a_leftHand ? "left" : "right",
 					weaponNodeName.c_str(),
 					sourceNodeName.c_str(),
 					targetNodeName.c_str());
@@ -420,5 +419,15 @@ namespace SDS
 
 			processRoot(firstPersonRoot, "first-person");
 		}
+	}
+
+	void Controller::ProcessEquippedLeftWeapon(RE::Actor* a_actor) const
+	{
+		ProcessEquippedWeapon(a_actor, true);
+	}
+
+	void Controller::ProcessPlayerWeapons(RE::Actor* a_actor) const
+	{
+		ProcessEquippedLeftWeapon(a_actor);
 	}
 }

@@ -55,7 +55,9 @@ namespace SDS
 		
 		void MoveEquippedLeftWeaponTest(RE::Actor* a_actor) const;
 		
+		void ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand) const;
 		void ProcessEquippedLeftWeapon(RE::Actor* a_actor) const;
+		void ProcessPlayerWeapons(RE::Actor* a_actor) const;
 
 	private:
 		const Config m_config;

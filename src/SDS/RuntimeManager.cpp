@@ -28,7 +28,7 @@ namespace SDS
 			return;
 		}
 
-		s_controller->ProcessEquippedLeftWeapon(player);
+		s_controller->ProcessPlayerWeapons(player);
 	}
 	
 	void RuntimeManager::Configure(bool a_enablePolling, std::uint32_t a_intervalMS)
