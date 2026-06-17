@@ -147,10 +147,8 @@ void LoadConfigAndInitializeController()
 		PluginState::g_controller->GetShieldOnBackSwitch());
 }
 
-void RunRuntimeProcess(const char* a_reason)
+void RunRuntimeProcess(const char*)
 {
-	logger::info("Beginning SDS runtime process: {}", a_reason);
-
 	if (!PluginState::g_controller) {
 		logger::warn("SDS runtime process skipped: controller is not initialized");
 		return;
@@ -163,8 +161,6 @@ void RunRuntimeProcess(const char* a_reason)
 	}
 
 	PluginState::g_controller->ProcessEquippedLeftWeapon(player);
-
-	logger::info("SDS runtime process complete: {}", a_reason);
 }
 
 void StartRuntimePolling(const char* a_reason)

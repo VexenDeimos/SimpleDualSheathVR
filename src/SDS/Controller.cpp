@@ -340,19 +340,16 @@ namespace SDS
 
 		const auto form = a_actor->GetEquippedObject(leftHand);
 		if (!form) {
-			logger::info("Process equipped left weapon: no left-hand equipped object");
 			return;
 		}
 
 		const auto weapon = form->As<RE::TESObjectWEAP>();
 		if (!weapon) {
-			logger::info("Process equipped left weapon: left-hand object is not a weapon");
 			return;
 		}
 
 		const auto entry = m_data->Get(a_actor, weapon, leftHand);
 		if (!entry) {
-			logger::info("Process equipped left weapon: no SDS weapon data entry matched");
 			return;
 		}
 
@@ -374,17 +371,8 @@ namespace SDS
 		const auto sourceNodeName = drawn ? sheathedNodeName : drawnNodeName;
 		const auto targetNodeName = drawn ? drawnNodeName : sheathedNodeName;
 
-		logger::info("Process equipped left weapon: weaponNode={}, drawn={}, source={}, target={}",
-			weaponNodeName.c_str(),
-			drawn,
-			sourceNodeName.c_str(),
-			targetNodeName.c_str());
-
 		const auto thirdPersonObject = a_actor->Get3D(false);
-		const auto firstPersonObject = a_actor->Get3D(true);
-
 		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
-		auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
 
 		const auto processRoot = [&](RE::NiNode* a_root, const char* a_rootName) {
 			if (!a_root) {
@@ -408,11 +396,6 @@ namespace SDS
 			const auto sourceWeaponObject = sourceNode->GetObjectByName(weaponNodeName);
 			const auto targetWeaponObject = targetNode->GetObjectByName(weaponNodeName);
 
-			logger::info("Process equipped left weapon [{}]: sourceWeaponObject={}, targetWeaponObject={}",
-				a_rootName,
-				sourceWeaponObject ? "FOUND" : "missing",
-				targetWeaponObject ? "FOUND" : "missing");
-
 			if (sourceWeaponObject) {
 				targetNode->AttachChild(sourceWeaponObject, true);
 
@@ -425,22 +408,17 @@ namespace SDS
 			}
 
 			if (targetWeaponObject) {
-				logger::info("Process equipped left weapon [{}]: weapon already exists at target {}",
-					a_rootName,
-					targetNodeName.c_str());
 				return;
 			}
-
-			logger::info("Process equipped left weapon [{}]: weapon object was not found under source or target",
-				a_rootName);
 		};
 
 		processRoot(thirdPersonRoot, "third-person");
 
 		if (entry->FirstPerson()) {
+			const auto firstPersonObject = a_actor->Get3D(true);
+			auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
+
 			processRoot(firstPersonRoot, "first-person");
-		} else {
-			logger::info("Process equipped left weapon: first-person skipped because SDS entry firstPerson=false");
 		}
 	}
 }
