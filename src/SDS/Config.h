@@ -106,6 +106,7 @@ namespace SDS
 		bool m_runtimePollingEnabled{ true };
 		std::uint32_t m_runtimePollingIntervalMS{ 3000 };
 		bool m_runtimeLogActionEvents{ false };
+		bool m_runtimeLogWeaponMoves{ false };
 		bool m_shieldHandWorkaround{ false };
 		bool m_shwForceIfDrawn{ false };
 		bool m_disableWeapNodeSharing{ false };

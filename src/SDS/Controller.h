@@ -26,6 +26,7 @@ namespace SDS
 		Controller& operator=(Controller&&) = delete;
 
 		void InitializeData();
+		void ConfigureRuntimeLogging(bool a_logWeaponMoves);
 
 		[[nodiscard]] const Config& GetConfig() const noexcept
 		{
@@ -50,11 +51,9 @@ namespace SDS
 		[[nodiscard]] static bool GetIsDrawn(RE::Actor* a_actor, DrawnState a_state);
 
 		void LogEquippedWeaponTest(RE::Actor* a_actor) const;
-
 		void LogEquippedWeaponNodePlanTest(RE::Actor* a_actor) const;
-		
 		void MoveEquippedLeftWeaponTest(RE::Actor* a_actor) const;
-		
+
 		void LogEquippedWeaponPlan(RE::Actor* a_actor, bool a_leftHand) const;
 		void ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand) const;
 		void ProcessEquippedLeftWeapon(RE::Actor* a_actor) const;
@@ -67,5 +66,7 @@ namespace SDS
 		std::unique_ptr<Data::WeaponData> m_data;
 
 		std::atomic<std::uint8_t> m_shieldOnBackSwitch{ 1 };
+
+		bool m_logWeaponMoves{ false };
 	};
 }

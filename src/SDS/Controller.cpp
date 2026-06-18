@@ -32,6 +32,13 @@ namespace SDS
 		logger::info("Shield on back switch default: {}", GetShieldOnBackSwitch());
 	}
 
+	void Controller::ConfigureRuntimeLogging(bool a_logWeaponMoves)
+	{
+		m_logWeaponMoves = a_logWeaponMoves;
+
+		logger::info("Weapon move logging configured: enabled={}", m_logWeaponMoves);
+	}
+
 	bool Controller::GetIsDrawn(RE::Actor* a_actor, DrawnState a_state)
 	{
 		switch (a_state) {
@@ -485,12 +492,15 @@ namespace SDS
 			if (sourceWeaponObject) {
 				targetNode->AttachChild(sourceWeaponObject, true);
 
-				logger::info("Process equipped weapon [{}][{}]: moved {} from {} to {}",
-					a_rootName,
-					a_leftHand ? "left" : "right",
-					weaponNodeName.c_str(),
-					sourceNodeName.c_str(),
-					targetNodeName.c_str());
+				if (m_logWeaponMoves) {
+					logger::info("Process equipped weapon [{}][{}]: moved {} from {} to {}",
+						a_rootName,
+						a_leftHand ? "left" : "right",
+						weaponNodeName.c_str(),
+						sourceNodeName.c_str(),
+						targetNodeName.c_str());
+				}
+
 				return;
 			}
 

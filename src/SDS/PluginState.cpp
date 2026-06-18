@@ -86,7 +86,8 @@ namespace SDS::PluginState
 
 		g_controller = std::make_unique<SDS::Controller>(config);
 		g_controller->InitializeData();
-
+		g_controller->ConfigureRuntimeLogging(config.m_runtimeLogWeaponMoves);
+		
 		SDS::RuntimeManager::SetController(g_controller.get());
 		SDS::RuntimeManager::Configure(
 			config.m_runtimePollingEnabled,
