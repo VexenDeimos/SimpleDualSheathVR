@@ -2,9 +2,64 @@
 
 #include "SDS/NodeManager.h"
 
+#include <algorithm>
+#include <cctype>
+#include <string_view>
+
 namespace
 {
 	std::vector<RE::NiPointer<RE::NiNode>> g_createdNodes;
+
+	bool StringContainsInsensitive(std::string_view a_text, std::string_view a_search)
+	{
+		if (a_search.empty()) {
+			return true;
+		}
+
+		const auto it = std::search(
+			a_text.begin(),
+			a_text.end(),
+			a_search.begin(),
+			a_search.end(),
+			[](char a_lhs, char a_rhs) {
+				return std::tolower(static_cast<unsigned char>(a_lhs)) ==
+				       std::tolower(static_cast<unsigned char>(a_rhs));
+			});
+
+		return it != a_text.end();
+	}
+
+	bool NodeNameMatchesDiscoveryFilter(std::string_view a_name)
+	{
+		constexpr std::string_view filters[] = {
+			"weapon",
+			"shield",
+			"sword",
+			"axe",
+			"mace",
+			"dagger",
+			"staff",
+			"hand",
+			"wrist",
+			"forearm",
+			"npc l",
+			"npc r",
+			"vrik",
+			"holster",
+			"sheath",
+			"back",
+			"left",
+			"right"
+		};
+
+		for (const auto filter : filters) {
+			if (StringContainsInsensitive(a_name, filter)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
 
 namespace SDS::NodeManager
@@ -160,5 +215,83 @@ namespace SDS::NodeManager
 		}
 
 		logger::info("Player node probe complete: {}", a_reason);
+	}
+
+	void RunPlayerNodeDiscovery(const char* a_reason)
+	{
+		logger::info("Beginning player node discovery: {}", a_reason);
+
+		const auto player = RE::PlayerCharacter::GetSingleton();
+		if (!player) {
+			logger::warn("Player node discovery failed: PlayerCharacter::GetSingleton returned null");
+			return;
+		}
+
+		const auto logRootMatches = [](RE::NiNode* a_root, const char* a_rootName) {
+			if (!a_root) {
+				logger::warn("Node discovery [{}]: root is null", a_rootName);
+				return;
+			}
+
+			logger::info("Node discovery [{}]: root={}", a_rootName, static_cast<const void*>(a_root));
+
+			std::uint32_t visitedCount = 0;
+			std::uint32_t matchedCount = 0;
+
+			const auto walkNode = [&](auto&& a_self, RE::NiAVObject* a_object, std::uint32_t a_depth) -> void {
+				if (!a_object) {
+					return;
+				}
+
+				++visitedCount;
+
+				const auto objectName = a_object->name.c_str();
+				if (objectName && objectName[0] != '\0' && NodeNameMatchesDiscoveryFilter(objectName)) {
+					++matchedCount;
+
+					logger::info("Node discovery [{}]: depth={}, object={}, node={}, name={}",
+						a_rootName,
+						a_depth,
+						static_cast<const void*>(a_object),
+						static_cast<const void*>(a_object->AsNode()),
+						objectName);
+				}
+
+				const auto node = a_object->AsNode();
+				if (!node) {
+					return;
+				}
+
+				for (const auto& child : node->children) {
+					a_self(a_self, child.get(), a_depth + 1);
+				}
+			};
+
+			walkNode(walkNode, a_root, 0);
+
+			logger::info("Node discovery [{}]: visited={}, matched={}", a_rootName, visitedCount, matchedCount);
+		};
+
+		const auto thirdPersonObject = player->Get3D(false);
+		const auto firstPersonObject = player->Get3D(true);
+		const auto currentObject = player->GetCurrent3D();
+
+		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
+		auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
+		auto currentRoot = currentObject ? currentObject->AsNode() : nullptr;
+
+		logger::info("Node discovery roots: thirdPerson={}, firstPerson={}, current={}",
+			static_cast<const void*>(thirdPersonRoot),
+			static_cast<const void*>(firstPersonRoot),
+			static_cast<const void*>(currentRoot));
+
+		logRootMatches(thirdPersonRoot, "third-person");
+		logRootMatches(firstPersonRoot, "first-person");
+
+		if (currentRoot && currentRoot != thirdPersonRoot && currentRoot != firstPersonRoot) {
+			logRootMatches(currentRoot, "current");
+		}
+
+		logger::info("Player node discovery complete: {}", a_reason);
 	}
 }

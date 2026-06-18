@@ -12,4 +12,5 @@ namespace SDS::NodeManager
 	void EnsureFallbackSDSNodes(RE::NiNode* a_root, const char* a_rootLabel);
 
 	void RunPlayerNodeProbe(const char* a_reason);
+	void RunPlayerNodeDiscovery(const char* a_reason);
 }
