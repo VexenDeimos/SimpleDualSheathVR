@@ -15,7 +15,22 @@ namespace SDS
 		s_controller = a_controller;
 	}
 
-	void RuntimeManager::Run(const char*)
+	void RuntimeManager::Run(const char* a_reason)
+	{
+		RunInternal(a_reason, std::nullopt);
+	}
+
+	void RuntimeManager::RunDrawn(const char* a_reason)
+	{
+		RunInternal(a_reason, true);
+	}
+
+	void RuntimeManager::RunSheathed(const char* a_reason)
+	{
+		RunInternal(a_reason, false);
+	}
+
+	void RuntimeManager::RunInternal(const char* a_reason, std::optional<bool> a_forcedDrawn)
 	{
 		if (!s_controller) {
 			logger::warn("SDS runtime process skipped: controller is not initialized");
@@ -28,9 +43,17 @@ namespace SDS
 			return;
 		}
 
-		s_controller->ProcessPlayerWeapons(player);
+		if (a_forcedDrawn.has_value()) {
+			logger::info("SDS runtime process: reason={}, forcedDrawn={}", a_reason, *a_forcedDrawn);
+			s_controller->ProcessPlayerWeapons(
+				player,
+				*a_forcedDrawn ? Controller::DrawnState::Drawn : Controller::DrawnState::Sheathed);
+			return;
+		}
+
+		s_controller->ProcessPlayerWeapons(player, Controller::DrawnState::Determine);
 	}
-	
+
 	void RuntimeManager::Configure(bool a_enablePolling, std::uint32_t a_intervalMS)
 	{
 		s_pollingEnabled = a_enablePolling;
@@ -47,6 +70,7 @@ namespace SDS
 			logger::info("SDS runtime polling disabled: {}", a_reason);
 			return;
 		}
+
 		const auto generation = ++s_pollingGeneration;
 		const auto intervalMS = s_pollingIntervalMS.load();
 

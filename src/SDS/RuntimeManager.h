@@ -11,10 +11,15 @@ namespace SDS
 		static void Configure(bool a_enablePolling, std::uint32_t a_intervalMS);
 
 		static void Run(const char* a_reason);
+		static void RunDrawn(const char* a_reason);
+		static void RunSheathed(const char* a_reason);
+
 		static void StartPolling(const char* a_reason);
 		static void StopPolling();
 
 	private:
+		static void RunInternal(const char* a_reason, std::optional<bool> a_forcedDrawn);
+
 		static std::atomic<std::uint32_t> s_pollingGeneration;
 		static std::atomic_bool s_pollingEnabled;
 		static std::atomic<std::uint32_t> s_pollingIntervalMS;

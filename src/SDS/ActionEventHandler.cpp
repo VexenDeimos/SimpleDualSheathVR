@@ -61,11 +61,11 @@ namespace
 			return false;
 		}
 	}
-	
+
 	bool ShouldQueueRuntimeProcess(SKSE::ActionEvent::Type a_type)
 	{
 		switch (a_type) {
-		case SKSE::ActionEvent::Type::kEndDraw:
+		case SKSE::ActionEvent::Type::kBeginDraw:
 		case SKSE::ActionEvent::Type::kEndSheathe:
 			return true;
 		default:
@@ -76,12 +76,36 @@ namespace
 	const char* GetRuntimeReason(SKSE::ActionEvent::Type a_type)
 	{
 		switch (a_type) {
-		case SKSE::ActionEvent::Type::kEndDraw:
-			return "ActionEvent kEndDraw";
+		case SKSE::ActionEvent::Type::kBeginDraw:
+			return "ActionEvent kBeginDraw";
 		case SKSE::ActionEvent::Type::kEndSheathe:
 			return "ActionEvent kEndSheathe";
 		default:
 			return "ActionEvent";
+		}
+	}
+
+	void QueueRuntimeProcess(SKSE::ActionEvent::Type a_type)
+	{
+		const auto taskInterface = SKSE::GetTaskInterface();
+		if (!taskInterface) {
+			logger::warn("ActionEvent runtime process skipped: SKSE task interface unavailable");
+			return;
+		}
+
+		switch (a_type) {
+		case SKSE::ActionEvent::Type::kBeginDraw:
+			taskInterface->AddTask([reason = std::string(GetRuntimeReason(a_type))]() {
+				SDS::RuntimeManager::RunDrawn(reason.c_str());
+			});
+			break;
+		case SKSE::ActionEvent::Type::kEndSheathe:
+			taskInterface->AddTask([reason = std::string(GetRuntimeReason(a_type))]() {
+				SDS::RuntimeManager::RunSheathed(reason.c_str());
+			});
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -163,15 +187,7 @@ namespace SDS
 		}
 
 		if (shouldQueueRuntimeProcess) {
-			const auto taskInterface = SKSE::GetTaskInterface();
-			if (!taskInterface) {
-				logger::warn("ActionEvent runtime process skipped: SKSE task interface unavailable");
-				return RE::BSEventNotifyControl::kContinue;
-			}
-
-			taskInterface->AddTask([reason = std::string(GetRuntimeReason(type))]() {
-				SDS::RuntimeManager::Run(reason.c_str());
-			});
+			QueueRuntimeProcess(type);
 		}
 
 		return RE::BSEventNotifyControl::kContinue;

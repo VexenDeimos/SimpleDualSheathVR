@@ -103,8 +103,8 @@ namespace SDS
 				entry->FirstPerson());
 		};
 
-		logHand(false); // right hand
-		logHand(true);  // left hand
+		logHand(false);
+		logHand(true);
 
 		logger::info("Equipped weapon test complete");
 	}
@@ -201,8 +201,8 @@ namespace SDS
 			logRootPlan(firstPersonRoot, "first-person");
 		};
 
-		logHandPlan(false); // right hand
-		logHandPlan(true);  // left hand
+		logHandPlan(false);
+		logHandPlan(true);
 
 		logger::info("Equipped weapon node plan test complete");
 	}
@@ -321,12 +321,7 @@ namespace SDS
 		};
 
 		runRootMove(thirdPersonRoot, "third-person move-test");
-
-		if (entry->FirstPerson()) {
-			runRootMove(firstPersonRoot, "first-person move-test");
-		} else {
-			logger::info("Move equipped left weapon test: first-person skipped because SDS entry firstPerson=false");
-		}
+		runRootMove(firstPersonRoot, "first-person move-test");
 
 		logger::info("Move equipped left weapon test complete");
 	}
@@ -419,7 +414,7 @@ namespace SDS
 			targetWeaponObject ? "FOUND" : "missing");
 	}
 
-	void Controller::ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand) const
+	void Controller::ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand, DrawnState a_state) const
 	{
 		if (!a_actor) {
 			logger::warn("Process equipped weapon skipped: actor is null");
@@ -456,16 +451,13 @@ namespace SDS
 
 		const RE::BSFixedString weaponNodeName(weaponNodeBuffer);
 
-		const auto drawn = a_actor->IsWeaponDrawn();
+		const auto drawn = GetIsDrawn(a_actor, a_state);
 
 		const auto sheathedNodeName = entry->GetNodeName(a_leftHand);
 		const auto drawnNodeName = a_leftHand ? m_strings->m_shield : m_strings->m_weapon;
 
 		const auto sourceNodeName = drawn ? sheathedNodeName : drawnNodeName;
 		const auto targetNodeName = drawn ? drawnNodeName : sheathedNodeName;
-
-		const auto thirdPersonObject = a_actor->Get3D(false);
-		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
 
 		const auto processRoot = [&](RE::NiNode* a_root, const char* a_rootName) {
 			if (!a_root) {
@@ -509,23 +501,32 @@ namespace SDS
 			}
 		};
 
+		const auto thirdPersonObject = a_actor->Get3D(false);
+		const auto firstPersonObject = a_actor->Get3D(true);
+		const auto currentObject = a_actor->GetCurrent3D();
+
+		auto thirdPersonRoot = thirdPersonObject ? thirdPersonObject->AsNode() : nullptr;
+		auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
+		auto currentRoot = currentObject ? currentObject->AsNode() : nullptr;
+
 		processRoot(thirdPersonRoot, "third-person");
 
-		if (entry->FirstPerson()) {
-			const auto firstPersonObject = a_actor->Get3D(true);
-			auto firstPersonRoot = firstPersonObject ? firstPersonObject->AsNode() : nullptr;
-
+		if (firstPersonRoot && firstPersonRoot != thirdPersonRoot) {
 			processRoot(firstPersonRoot, "first-person");
+		}
+
+		if (currentRoot && currentRoot != thirdPersonRoot && currentRoot != firstPersonRoot) {
+			processRoot(currentRoot, "current");
 		}
 	}
 
-	void Controller::ProcessEquippedLeftWeapon(RE::Actor* a_actor) const
+	void Controller::ProcessEquippedLeftWeapon(RE::Actor* a_actor, DrawnState a_state) const
 	{
-		ProcessEquippedWeapon(a_actor, true);
+		ProcessEquippedWeapon(a_actor, true, a_state);
 	}
 
-	void Controller::ProcessPlayerWeapons(RE::Actor* a_actor) const
+	void Controller::ProcessPlayerWeapons(RE::Actor* a_actor, DrawnState a_state) const
 	{
-		ProcessEquippedLeftWeapon(a_actor);
+		ProcessEquippedLeftWeapon(a_actor, a_state);
 	}
 }
