@@ -1,7 +1,6 @@
 #include "PCH.h"
 
 #include "SDS/ActionEventHandler.h"
-#include "SDS/NodeManager.h"
 #include "SDS/PluginState.h"
 #include "SDS/RuntimeManager.h"
 
@@ -63,7 +62,6 @@ void OnSKSEMessage(SKSE::MessagingInterface::Message* a_message)
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 		logger::info("SKSE message: kPostLoadGame");
-		SDS::NodeManager::RunPlayerNodeDiscovery("kPostLoadGame");
 		SDS::RuntimeManager::Run("kPostLoadGame");
 		SDS::RuntimeManager::StartPolling("kPostLoadGame");
 		break;
