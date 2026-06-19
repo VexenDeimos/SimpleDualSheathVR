@@ -66,7 +66,7 @@ namespace
 	{
 		switch (a_type) {
 		case SKSE::ActionEvent::Type::kBeginDraw:
-		case SKSE::ActionEvent::Type::kEndSheathe:
+		case SKSE::ActionEvent::Type::kBeginSheathe:
 			return true;
 		default:
 			return false;
@@ -78,8 +78,8 @@ namespace
 		switch (a_type) {
 		case SKSE::ActionEvent::Type::kBeginDraw:
 			return "ActionEvent kBeginDraw";
-		case SKSE::ActionEvent::Type::kEndSheathe:
-			return "ActionEvent kEndSheathe";
+		case SKSE::ActionEvent::Type::kBeginSheathe:
+			return "ActionEvent kBeginSheathe";
 		default:
 			return "ActionEvent";
 		}
@@ -99,7 +99,7 @@ namespace
 				SDS::RuntimeManager::RunDrawn(reason.c_str());
 			});
 			break;
-		case SKSE::ActionEvent::Type::kEndSheathe:
+		case SKSE::ActionEvent::Type::kBeginSheathe:
 			taskInterface->AddTask([reason = std::string(GetRuntimeReason(a_type))]() {
 				SDS::RuntimeManager::RunSheathed(reason.c_str());
 			});
