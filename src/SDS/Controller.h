@@ -58,6 +58,7 @@ namespace SDS
 
 		void ProcessEquippedWeapon(RE::Actor* a_actor, bool a_leftHand, DrawnState a_state = DrawnState::Determine) const;
 		void ProcessEquippedLeftWeapon(RE::Actor* a_actor, DrawnState a_state = DrawnState::Determine) const;
+		void ProcessEquippedRightWeapon(RE::Actor* a_actor, DrawnState a_state = DrawnState::Determine) const;
 		void ProcessPlayerWeapons(RE::Actor* a_actor, DrawnState a_state = DrawnState::Determine) const;
 
 	private:

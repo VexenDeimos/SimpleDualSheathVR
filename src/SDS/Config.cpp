@@ -192,7 +192,7 @@ namespace SDS
 				out |= Flags::kFirstPerson;
 			} else if (entry == "mountonly") {
 				out |= Flags::kMountOnly;
-			} else if (a_internal && entry == "right") {
+			} else if (entry == "right") {
 				out |= Flags::kRight;
 			} else if (a_internal && entry == "swap") {
 				out |= Flags::kSwap;

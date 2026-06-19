@@ -17,7 +17,7 @@ namespace SDS
 
 		m_data->Create(RE::WEAPON_TYPE::kOneHandSword, StringHolder::NINODE_SWORD, StringHolder::NINODE_SWORD_LEFT, m_config.m_sword);
 		m_data->Create(RE::WEAPON_TYPE::kOneHandAxe, StringHolder::NINODE_AXE, StringHolder::NINODE_AXE_LEFT, m_config.m_axe);
-		m_data->Create(RE::WEAPON_TYPE::kOneHandMace, StringHolder::NINODE_MACE, StringHolder::NINODE_MACE_LEFT, m_config.m_mace);
+		m_data->Create(RE::WEAPON_TYPE::kOneHandMace, "HDT WeaponMace", StringHolder::NINODE_MACE_LEFT, m_config.m_mace);
 		m_data->Create(RE::WEAPON_TYPE::kOneHandDagger, StringHolder::NINODE_DAGGER, StringHolder::NINODE_DAGGER_LEFT, m_config.m_dagger);
 		m_data->Create(RE::WEAPON_TYPE::kStaff, StringHolder::NINODE_STAFF, StringHolder::NINODE_STAFF_LEFT, m_config.m_staff);
 		m_data->Create(RE::WEAPON_TYPE::kTwoHandSword, StringHolder::NINODE_WEAPON_BACK, StringHolder::NINODE_SWORD_ON_BACK_LEFT, m_config.m_2hSword);
@@ -525,8 +525,14 @@ namespace SDS
 		ProcessEquippedWeapon(a_actor, true, a_state);
 	}
 
+	void Controller::ProcessEquippedRightWeapon(RE::Actor* a_actor, DrawnState a_state) const
+	{
+		ProcessEquippedWeapon(a_actor, false, a_state);
+	}
+
 	void Controller::ProcessPlayerWeapons(RE::Actor* a_actor, DrawnState a_state) const
 	{
 		ProcessEquippedLeftWeapon(a_actor, a_state);
+		ProcessEquippedRightWeapon(a_actor, a_state);
 	}
 }
