@@ -230,6 +230,7 @@ namespace SDS
 		m_disableWeapNodeSharing = reader.GetBoolValue(SECT_GENERAL, "DisableWeaponNodeSharing", false);
 		m_runtimePollingEnabled = reader.GetBoolValue(SECT_RUNTIME, "EnableRuntimePolling", true);
 		m_runtimePollingIntervalMS = reader.GetUInt32Value(SECT_RUNTIME, "PollingIntervalMS", 3000);
+		m_runtimeEnablePlayerWeapons = reader.GetBoolValue(SECT_RUNTIME, "EnablePlayerWeapons", false);
 		m_runtimeLogActionEvents = reader.GetBoolValue(SECT_RUNTIME, "LogActionEvents", false);
 		m_runtimeLogWeaponMoves = reader.GetBoolValue(SECT_RUNTIME, "LogWeaponMoves", false);
 

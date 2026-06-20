@@ -532,6 +532,14 @@ namespace SDS
 
 	void Controller::ProcessPlayerWeapons(RE::Actor* a_actor, DrawnState a_state) const
 	{
+		if (!m_config.m_runtimeEnablePlayerWeapons) {
+			if (m_logWeaponMoves) {
+				logger::info("Process player weapons skipped: EnablePlayerWeapons=false");
+			}
+
+			return;
+		}
+
 		ProcessEquippedLeftWeapon(a_actor, a_state);
 		ProcessEquippedRightWeapon(a_actor, a_state);
 	}
